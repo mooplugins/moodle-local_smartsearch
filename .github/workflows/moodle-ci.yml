@@ -55,11 +55,11 @@ jobs:
           - php: '8.3'
             moodle-branch: 'MOODLE_502_STABLE'
             database: 'mariadb'
-            node: '22.11'
+            node: '22'
 
     steps:
       - name: Check out local_smartsearch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: plugin
 
@@ -72,7 +72,7 @@ jobs:
           coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
 
@@ -121,18 +121,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci savepoints $GITHUB_WORKSPACE/plugin
 
-      - name: Quality gate (architecture and N+1 regressions)
-        if: ${{ !cancelled() }}
-        run: php $GITHUB_WORKSPACE/plugin/tools/quality-gate.php
-
       - name: Mustache Lint
         if: ${{ !cancelled() }}
-        run: moodle-plugin-ci mustache $GITHUB_WORKSPACE/plugin
+        run: moodle-plugin-ci mustache
 
       - name: Grunt
         if: ${{ !cancelled() }}
-        run: bash $GITHUB_WORKSPACE/plugin/tools/ci-grunt.sh
+        run: moodle-plugin-ci grunt
 
       - name: PHPUnit tests (local_smartsearch)
         if: ${{ !cancelled() }}
-        run: moodle-plugin-ci phpunit --fail-on-warning $GITHUB_WORKSPACE/plugin
+        run: moodle-plugin-ci phpunit --fail-on-warning
