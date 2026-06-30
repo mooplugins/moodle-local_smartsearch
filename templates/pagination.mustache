@@ -1,0 +1,20 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    @template local_smartsearch/pagination
+
+    Example context (json):
+    {
+        "links": [
+            {"page": 1, "label": "1", "active": true, "disabled": false},
+            {"page": 2, "label": "Next", "active": false, "disabled": false}
+        ]
+    }
+}}
+{{#links}}
+<a href="#" class="smartsearch-page-link{{#active}} is-active{{/active}}{{#disabled}} is-disabled{{/disabled}}" data-page="{{page}}">{{label}}</a>
+{{/links}}

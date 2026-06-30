@@ -1,0 +1,32 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    @template local_smartsearch/searchoverlay
+
+    Example context (json):
+    {
+        "searchtitle": "Search (Ctrl+K)",
+        "searchplaceholder": "Search users, courses, activities, settings...",
+        "resultslabel": "Search results",
+        "viewall": "View all results"
+    }
+}}
+<div id="smartsearch-overlay" class="smartsearch-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="{{searchtitle}}">
+    <div class="smartsearch-container">
+        <input type="text"
+               id="smartsearch-input"
+               class="smartsearch-input"
+               placeholder="{{searchplaceholder}}"
+               autocomplete="off"
+               aria-label="{{searchplaceholder}}">
+        <div id="smartsearch-results" class="smartsearch-results" role="region" aria-live="polite" aria-label="{{resultslabel}}"></div>
+        <div class="smartsearch-view-all" id="smartsearch-view-all" style="display: none;">
+            <a href="#" class="smartsearch-view-all-link">{{viewall}}</a>
+        </div>
+    </div>
+</div>

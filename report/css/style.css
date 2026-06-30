@@ -1,0 +1,67 @@
+/**
+ * Smart Search analytics report styles.
+ *
+ * @package    local_smartsearch
+ * @copyright  2025 Mooplugins
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+.smartsearch-analytics-charts {
+    margin-bottom: 2rem;
+}
+
+.smartsearch-analytics-charts .card {
+    overflow: hidden;
+}
+
+.smartsearch-analytics-charts .card-body {
+    overflow: hidden;
+}
+
+.smartsearch-analytics-charts .chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.smartsearch-analytics-charts .chart-area {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.smartsearch-analytics-charts .chart-image {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    min-height: 420px;
+    height: 420px;
+    overflow: hidden;
+}
+
+.smartsearch-analytics-charts .chart-image canvas {
+    display: block;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.smartsearch-analytics-charts .chart-table {
+    margin-top: 0.75rem;
+}
+
+.smartsearch-analytics-charts .chart-table-data {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.smartsearch-analytics-charts .chart-table-data table {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Report table styles */
+.report-table {
+    margin-top: 2rem;
+}

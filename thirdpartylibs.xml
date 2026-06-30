@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<libraries>
+    <!-- This plugin uses only Moodle core AMD modules (core/ajax, core/templates, etc.). -->
+</libraries>
