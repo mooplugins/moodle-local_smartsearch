@@ -2,7 +2,7 @@
 
 All notable changes to the Smart Search plugin are documented here.
 
-## 1.0.9 - 2025-06-24
+## 1.0.9 - 2026-06-24
 
 ### Added
 
