@@ -6,13 +6,19 @@ All notable changes to the Smart Search plugin are documented here.
 
 ### Added
 
+- Initial public release of Smart Search for Moodle.
+- Command-palette-style search interface.
+- Search support for courses, activities, users, settings, plugins, and categories.
+- Dedicated results page with category filters.
+- Quick actions based on Moodle capabilities.
+- Optional anonymous search analytics.
+- Moodle Privacy API support.
 - GitHub Actions Moodle Plugin CI workflow.
-- Privacy API metadata provider for analytics and search index tables.
 - PHPUnit tests for privacy metadata and analytics cleanup.
 - `thirdpartylibs.xml`, `LICENSE`, and contributor documentation.
 
 ### Fixed
 
-- Coding standards and PHPDoc compliance (codechecker, moodlecheck).
-- External webservice return type (`PARAM_TEXT` instead of `PARAM_RAW`).
+- Coding standards and PHPDoc compliance.
+- External webservice return type.
 - Stale PHPDoc on `indexer::add_to_index()`.
