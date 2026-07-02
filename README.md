@@ -57,6 +57,8 @@ Analytics is enabled by default with a **365-day retention** period; both can be
 - **Privacy API** — metadata, export, and deletion support for indexed data
 - **Keyboard-driven UI** — Ctrl+K / Cmd+K from anywhere in the site
 
+Read more: https://www.mooplugins.com/blog/smart-search-moodle-plugin/
+
 ## Requirements
 
 - Moodle 4.5 or higher (CI tested on 4.5, 5.0, 5.2)
