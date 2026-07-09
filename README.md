@@ -4,8 +4,8 @@ A unified, intelligent search plugin for Moodle that helps administrators, instr
 
 Smart Search adds a fast, command-palette-style search experience to Moodle, helping users quickly find courses, activities, users, settings, categories, and admin pages. Users get instant suggestions while typing, a dedicated results page for deeper exploration, and quick actions directly from search results.
 
-**Product page:** [Smart Search – MooPlugins](https://www.mooplugins.com/plugins/smart-search-moodle-plugin/)  
-**Documentation:** [Smart Search documentation](https://www.mooplugins.com/docs/) (see Learn More on the product page)
+**Product page:** [Smart Search – MooPlugins](https://www.mooplugins.com/plugins/smart-search-moodle-plugin/?utm_source=github&utm_medium=referral)  
+**Documentation:** [Smart Search documentation](https://www.mooplugins.com/docs/?utm_source=github&utm_medium=referral) (see Learn More on the product page)
 
 ## Why Smart Search?
 
@@ -57,7 +57,7 @@ Analytics is enabled by default with a **365-day retention** period; both can be
 - **Privacy API** — metadata, export, and deletion support for indexed data
 - **Keyboard-driven UI** — Ctrl+K / Cmd+K from anywhere in the site
 
-Read more: https://www.mooplugins.com/blog/smart-search-moodle-plugin/
+Read more: https://www.mooplugins.com/blog/smart-search-moodle-plugin/?utm_source=github&utm_medium=referral
 
 ## Requirements
 
