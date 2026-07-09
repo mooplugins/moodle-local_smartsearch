@@ -107,4 +107,4 @@ GPL v3 or later. See [LICENSE](LICENSE).
 
 ## Credits
 
-Developed by [MooPlugins](https://www.mooplugins.com/).
+Developed by [MooPlugins](https://www.mooplugins.com/?utm_source=github&utm_medium=referral).
