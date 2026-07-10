@@ -18,7 +18,7 @@
  * Analytics table for Smart Search report.
  *
  * @package    local_smartsearch
- * @copyright  2025 Mooplugins
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -32,7 +32,7 @@ require_once($CFG->libdir . '/tablelib.php');
  * Table class for displaying Smart Search analytics data.
  *
  * @package    local_smartsearch
- * @copyright  2025 Mooplugins
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class analytics_table extends \table_sql {

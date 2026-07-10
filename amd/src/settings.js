@@ -17,7 +17,7 @@
  * Settings page JavaScript for Smart Search.
  *
  * @module     local_smartsearch/settings
- * @copyright  2025 Mooplugins
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
