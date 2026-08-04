@@ -40,9 +40,10 @@ class setting extends base {
 
     /**
      * Get the recordset of settings to index.
-     * Note: Settings don't have a traditional recordset, so we return a custom structure.
      *
-     * @param int $modifiedfrom Timestamp
+     * @param int $modifiedfrom Timestamp to get items modified after
+     * @param int $afterid Only include records with id greater than this
+     * @param int $limit Max rows (0 = no limit)
      * @return \moodle_recordset|null
      */
     public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset {

@@ -37,29 +37,32 @@ class index_adhoc_task extends \core\task\adhoc_task {
         $updateinterval = 1.0;
 
         try {
-            $stats = \local_smartsearch\indexer::index_all(0, function ($stats) use (&$lastupdatetime, $updateinterval, $starttime) {
-                // Allow stop requests to abort between progress updates.
-                if (empty(get_config('local_smartsearch', 'indexing_in_progress'))) {
-                    throw new \local_smartsearch\exception\indexing_cancelled_exception();
+            $stats = \local_smartsearch\indexer::index_all(
+                0,
+                function ($stats) use (&$lastupdatetime, $updateinterval, $starttime) {
+                    // Allow stop requests to abort between progress updates.
+                    if (empty(get_config('local_smartsearch', 'indexing_in_progress'))) {
+                        throw new \local_smartsearch\exception\indexing_cancelled_exception();
+                    }
+
+                    $now = microtime(true);
+                    if (($now - $lastupdatetime) < $updateinterval) {
+                        return;
+                    }
+
+                    $stats = array_merge([
+                        'total' => 0,
+                        'indexed' => 0,
+                        'skipped' => 0,
+                        'errors' => 0,
+                    ], $stats);
+                    $stats['elapsed'] = time() - $starttime;
+                    $stats['last_update'] = time();
+
+                    set_config('indexing_stats', json_encode($stats), 'local_smartsearch');
+                    $lastupdatetime = $now;
                 }
-
-                $now = microtime(true);
-                if (($now - $lastupdatetime) < $updateinterval) {
-                    return;
-                }
-
-                $stats = array_merge([
-                    'total' => 0,
-                    'indexed' => 0,
-                    'skipped' => 0,
-                    'errors' => 0,
-                ], $stats);
-                $stats['elapsed'] = time() - $starttime;
-                $stats['last_update'] = time();
-
-                set_config('indexing_stats', json_encode($stats), 'local_smartsearch');
-                $lastupdatetime = $now;
-            });
+            );
 
             set_config('indexing_stats', json_encode($stats), 'local_smartsearch');
             set_config('last_index_time', time(), 'local_smartsearch');

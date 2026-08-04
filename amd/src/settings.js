@@ -58,7 +58,8 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
         }
         return {
             done: !!(response && response.done),
-            in_progress: !!(response && response.in_progress),
+            // External service returns snake_case field names.
+            inProgress: !!(response && response.in_progress),
             stats: stats,
             timestamp: response && response.timestamp ? response.timestamp : 0
         };
@@ -196,7 +197,7 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
 
         var updateUiFromStats = function(progressResponse) {
             if (!progressResponse.stats) {
-                if (progressResponse.in_progress && statsEl) {
+                if (progressResponse.inProgress && statsEl) {
                     statsEl.textContent = M.util.get_string('starting_indexing', 'local_smartsearch');
                 }
                 return;
@@ -205,7 +206,7 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
             var stats = progressResponse.stats;
             var total = stats.total || 0;
             var indexed = stats.indexed || 0;
-            var targetPercent = calculateTargetPercent(stats, !!progressResponse.in_progress);
+            var targetPercent = calculateTargetPercent(stats, !!progressResponse.inProgress);
 
             if (animationInterval) {
                 clearInterval(animationInterval);
@@ -234,27 +235,26 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
                         skipped: stats.skipped || 0,
                         errors: stats.errors || 0
                     });
-                } else if (progressResponse.in_progress) {
+                } else if (progressResponse.inProgress) {
                     statsEl.textContent = M.util.get_string('indexing_in_progress_items', 'local_smartsearch', indexed);
                 }
             }
         };
 
         var processNextChunk = function() {
-            return callIndexService('local_smartsearch_process_indexing_chunk', {chunksize: 100})
+            callIndexService('local_smartsearch_process_indexing_chunk', {chunksize: 100})
                 .then(function(rawResponse) {
                     var progressResponse = normaliseProgressResponse(rawResponse);
                     updateUiFromStats(progressResponse);
 
-                    if (progressResponse.done || !progressResponse.in_progress) {
+                    if (progressResponse.done || !progressResponse.inProgress) {
                         completeIndexingUi(progressResponse, btn, statsEl, null, animationInterval);
-                        return undefined;
+                        return null;
                     }
 
                     // Yield to the browser between chunks.
-                    return new Promise(function(resolve) {
-                        setTimeout(resolve, 0);
-                    }).then(processNextChunk);
+                    setTimeout(processNextChunk, 0);
+                    return null;
                 }).catch(function() {
                     btn.disabled = false;
                     if (statsEl) {
@@ -266,7 +266,7 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
                 });
         };
 
-        return processNextChunk();
+        processNextChunk();
     }
 
     return {
