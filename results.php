@@ -39,8 +39,6 @@ $PAGE->set_title(get_string('search_results_title', 'local_smartsearch'));
 $PAGE->set_heading(get_string('search_results_title', 'local_smartsearch'));
 $PAGE->add_body_class('smartsearch-results-page');
 
-$PAGE->requires->css('/local/smartsearch/styles.css');
-
 // Ensure JS strings used by the renderer are available.
 $strings = [
     'results_users',

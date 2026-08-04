@@ -69,9 +69,6 @@ $PAGE->set_title(get_string('settings', 'local_smartsearch'));
 $PAGE->set_heading(get_string('settings', 'local_smartsearch'));
 $PAGE->navbar->add(get_string('pluginname', 'local_smartsearch'), $url);
 
-// Load CSS and JS before header is printed.
-$PAGE->requires->css('/local/smartsearch/styles.css');
-
 // Load required strings for JavaScript.
 $strings = [
     'minchars',
