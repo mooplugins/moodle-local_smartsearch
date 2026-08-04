@@ -45,7 +45,7 @@ class plugin extends base {
      * @param int $modifiedfrom Timestamp
      * @return \moodle_recordset|null
      */
-    public function get_recordset(int $modifiedfrom = 0): ?\moodle_recordset {
+    public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset {
         // Plugin pages are indexed from navigation, not a database table.
         return null;
     }

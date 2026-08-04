@@ -40,9 +40,11 @@ abstract class base {
      * Get the recordset of items to index.
      *
      * @param int $modifiedfrom Timestamp to get items modified after
+     * @param int $afterid Only include records with id greater than this
+     * @param int $limit Max rows (0 = no limit)
      * @return \moodle_recordset|null
      */
-    abstract public function get_recordset(int $modifiedfrom = 0): ?\moodle_recordset;
+    abstract public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset;
 
     /**
      * Index a specific item.

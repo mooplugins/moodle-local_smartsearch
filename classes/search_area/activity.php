@@ -66,11 +66,16 @@ class activity extends base {
      * @param int $modifiedfrom Timestamp
      * @return \moodle_recordset|null
      */
-    public function get_recordset(int $modifiedfrom = 0): ?\moodle_recordset {
+    public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset {
         global $DB;
 
         $params = [];
         $where = 'cm.deletioninprogress = 0 AND c.id IS NOT NULL';
+
+        if ($afterid > 0) {
+            $where .= ' AND cm.id > ?';
+            $params[] = $afterid;
+        }
 
         if ($modifiedfrom > 0) {
             // Course_modules has "added" timestamp, not "timemodified".
@@ -87,7 +92,7 @@ class activity extends base {
                 WHERE {$where}
                 ORDER BY cm.id ASC";
 
-        return $DB->get_recordset_sql($sql, $params);
+        return $DB->get_recordset_sql($sql, $params, 0, $limit > 0 ? $limit : 0);
     }
 
     /**

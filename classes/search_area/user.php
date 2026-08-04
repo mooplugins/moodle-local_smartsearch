@@ -99,11 +99,16 @@ class user extends base {
      * @param int $modifiedfrom Timestamp
      * @return \moodle_recordset|null
      */
-    public function get_recordset(int $modifiedfrom = 0): ?\moodle_recordset {
+    public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset {
         global $DB;
 
         $params = [];
         $where = 'deleted = 0';
+
+        if ($afterid > 0) {
+            $where .= ' AND id > ?';
+            $params[] = $afterid;
+        }
 
         if ($modifiedfrom > 0) {
             $where .= ' AND (timecreated > ? OR timemodified > ?)';
@@ -111,7 +116,15 @@ class user extends base {
             $params[] = $modifiedfrom;
         }
 
-        return $DB->get_recordset_select('user', $where, $params, 'id ASC', 'id, firstname, lastname, email, username, suspended');
+        return $DB->get_recordset_select(
+            'user',
+            $where,
+            $params,
+            'id ASC',
+            'id, firstname, lastname, email, username, suspended',
+            0,
+            $limit > 0 ? $limit : 0
+        );
     }
 
     /**

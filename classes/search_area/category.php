@@ -44,11 +44,16 @@ class category extends base {
      * @param int $modifiedfrom Timestamp
      * @return \moodle_recordset|null
      */
-    public function get_recordset(int $modifiedfrom = 0): ?\moodle_recordset {
+    public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset {
         global $DB;
 
         $params = [];
         $where = '1=1';
+
+        if ($afterid > 0) {
+            $where .= ' AND id > ?';
+            $params[] = $afterid;
+        }
 
         if ($modifiedfrom > 0) {
             // Course_categories has timemodified, but no timecreated.
@@ -56,7 +61,15 @@ class category extends base {
             $params[] = $modifiedfrom;
         }
 
-        return $DB->get_recordset_select('course_categories', $where, $params, 'id ASC', 'id, name, description, parent, visible');
+        return $DB->get_recordset_select(
+            'course_categories',
+            $where,
+            $params,
+            'id ASC',
+            'id, name, description, parent, visible',
+            0,
+            $limit > 0 ? $limit : 0
+        );
     }
 
     /**

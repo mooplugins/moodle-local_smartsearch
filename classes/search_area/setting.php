@@ -45,7 +45,7 @@ class setting extends base {
      * @param int $modifiedfrom Timestamp
      * @return \moodle_recordset|null
      */
-    public function get_recordset(int $modifiedfrom = 0): ?\moodle_recordset {
+    public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset {
         // Settings are indexed from the admin tree, not a database table.
         // We'll return null here and handle indexing differently.
         return null;

@@ -27,17 +27,18 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
      * Call an indexing external service.
      *
      * @param {string} methodname Web service method name
+     * @param {Object} [args] Method arguments
      * @return {Promise<Object>}
      */
-    function callIndexService(methodname) {
+    function callIndexService(methodname, args) {
         return Ajax.call([{
             methodname: methodname,
-            args: {}
+            args: args || {}
         }])[0];
     }
 
     /**
-     * Normalise indexing progress payload from the external service.
+     * Normalise indexing progress/chunk payload from the external service.
      *
      * @param {Object} response External service response
      * @return {Object}
@@ -56,6 +57,7 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
             }
         }
         return {
+            done: !!(response && response.done),
             in_progress: !!(response && response.in_progress),
             stats: stats,
             timestamp: response && response.timestamp ? response.timestamp : 0
@@ -102,27 +104,28 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
      * @return {number}
      */
     function calculateTargetPercent(stats, inProgress) {
-        var total = stats.total || 0;
-        var indexed = stats.indexed || 0;
-        var targetPercent = 0;
-
-        if (total > 0) {
-            targetPercent = Math.round((indexed / total) * 100);
-            if (indexed > 0 && targetPercent === 0) {
-                targetPercent = 1;
+        if (stats && typeof stats.percent === 'number') {
+            if (!inProgress) {
+                return 100;
             }
-            targetPercent = Math.min(100, targetPercent);
-        } else if (indexed > 0) {
-            targetPercent = Math.min(95, Math.max(1, Math.round((indexed / Math.max(10000, indexed * 10)) * 100)));
-        } else if (inProgress) {
-            targetPercent = 1;
+            return Math.max(0, Math.min(99, Math.round(stats.percent)));
         }
 
-        if (!inProgress && indexed > 0 && total === 0) {
-            targetPercent = 100;
+        // Fallback when percent is unavailable.
+        var areasTotal = stats.areas_total || 0;
+        var areasDone = stats.areas_done || 0;
+        if (areasTotal > 0) {
+            var areaPercent = Math.round((areasDone / areasTotal) * 100);
+            if (!inProgress) {
+                return 100;
+            }
+            return Math.max(0, Math.min(99, areaPercent));
         }
 
-        return targetPercent;
+        if (inProgress) {
+            return 1;
+        }
+        return 100;
     }
 
     /**
@@ -152,12 +155,6 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
         });
 
         var finalPercent = 100;
-        if (progressResponse.stats) {
-            var finalStats = progressResponse.stats;
-            if (finalStats.total > 0) {
-                finalPercent = Math.min(100, Math.round((finalStats.indexed / finalStats.total) * 100));
-            }
-        }
         setProgressPercent(finalPercent);
 
         if (progressResponse.stats) {
@@ -188,81 +185,88 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
     }
 
     /**
-     * Handle indexing progress polling.
+     * Drive chunked indexing until complete, updating UI after each chunk.
      *
      * @param {HTMLButtonElement} btn Index button
      * @param {HTMLElement} statsEl Stats element
      */
-    function startProgressPolling(btn, statsEl) {
-        var progressInterval = null;
+    function startChunkedIndexing(btn, statsEl) {
         var animationInterval = null;
         var lastPercent = 0;
 
-        var pollProgress = function() {
-            void callIndexService('local_smartsearch_get_indexing_progress').then(function(rawResponse) {
-                var progressResponse = normaliseProgressResponse(rawResponse);
-                if (!progressResponse) {
-                    return;
+        var updateUiFromStats = function(progressResponse) {
+            if (!progressResponse.stats) {
+                if (progressResponse.in_progress && statsEl) {
+                    statsEl.textContent = M.util.get_string('starting_indexing', 'local_smartsearch');
                 }
+                return;
+            }
 
-                if (progressResponse.stats) {
-                    var stats = progressResponse.stats;
-                    var total = stats.total || 0;
-                    var indexed = stats.indexed || 0;
-                    var targetPercent = calculateTargetPercent(stats, !!progressResponse.in_progress);
+            var stats = progressResponse.stats;
+            var total = stats.total || 0;
+            var indexed = stats.indexed || 0;
+            var targetPercent = calculateTargetPercent(stats, !!progressResponse.in_progress);
 
+            if (animationInterval) {
+                clearInterval(animationInterval);
+            }
+
+            var currentPercent = lastPercent;
+            var step = Math.max(1, Math.ceil(Math.abs(targetPercent - currentPercent) / 10));
+            animationInterval = setInterval(function() {
+                if (currentPercent < targetPercent) {
+                    currentPercent = Math.min(targetPercent, currentPercent + step);
+                } else if (currentPercent > targetPercent) {
+                    currentPercent = Math.max(targetPercent, currentPercent - step);
+                } else {
+                    clearInterval(animationInterval);
+                    animationInterval = null;
+                }
+                setProgressPercent(currentPercent);
+                lastPercent = currentPercent;
+            }, 50);
+
+            if (statsEl) {
+                if (total > 0) {
+                    statsEl.textContent = M.util.get_string('indexed_stats', 'local_smartsearch', {
+                        indexed: indexed,
+                        total: total,
+                        skipped: stats.skipped || 0,
+                        errors: stats.errors || 0
+                    });
+                } else if (progressResponse.in_progress) {
+                    statsEl.textContent = M.util.get_string('indexing_in_progress_items', 'local_smartsearch', indexed);
+                }
+            }
+        };
+
+        var processNextChunk = function() {
+            return callIndexService('local_smartsearch_process_indexing_chunk', {chunksize: 100})
+                .then(function(rawResponse) {
+                    var progressResponse = normaliseProgressResponse(rawResponse);
+                    updateUiFromStats(progressResponse);
+
+                    if (progressResponse.done || !progressResponse.in_progress) {
+                        completeIndexingUi(progressResponse, btn, statsEl, null, animationInterval);
+                        return undefined;
+                    }
+
+                    // Yield to the browser between chunks.
+                    return new Promise(function(resolve) {
+                        setTimeout(resolve, 0);
+                    }).then(processNextChunk);
+                }).catch(function() {
+                    btn.disabled = false;
+                    if (statsEl) {
+                        statsEl.textContent = M.util.get_string('error_starting_indexing', 'local_smartsearch');
+                    }
                     if (animationInterval) {
                         clearInterval(animationInterval);
                     }
-
-                    var currentPercent = lastPercent;
-                    var step = Math.max(1, Math.ceil(Math.abs(targetPercent - currentPercent) / 10));
-                    animationInterval = setInterval(function() {
-                        if (currentPercent < targetPercent) {
-                            currentPercent = Math.min(targetPercent, currentPercent + step);
-                        } else if (currentPercent > targetPercent) {
-                            currentPercent = Math.max(targetPercent, currentPercent - step);
-                        } else {
-                            clearInterval(animationInterval);
-                            animationInterval = null;
-                        }
-                        setProgressPercent(currentPercent);
-                        lastPercent = currentPercent;
-                    }, 50);
-
-                    if (total > 0) {
-                        statsEl.textContent = M.util.get_string('indexed_stats', 'local_smartsearch', {
-                            indexed: indexed,
-                            total: total,
-                            skipped: stats.skipped || 0,
-                            errors: stats.errors || 0
-                        });
-                    } else if (progressResponse.in_progress) {
-                        statsEl.textContent = M.util.get_string('indexing_in_progress_items', 'local_smartsearch', indexed);
-                    }
-                } else if (progressResponse.in_progress) {
-                    statsEl.textContent = M.util.get_string('starting_indexing', 'local_smartsearch');
-                }
-
-                if (!progressResponse.in_progress) {
-                    var intervals = completeIndexingUi(
-                        progressResponse,
-                        btn,
-                        statsEl,
-                        progressInterval,
-                        animationInterval
-                    );
-                    progressInterval = intervals.progressInterval;
-                    animationInterval = intervals.animationInterval;
-                }
-                return;
-            }).catch(function() {
-                // Ignore transient polling errors.
-            });
+                });
         };
 
-        pollProgress();
-        progressInterval = setInterval(pollProgress, 1000);
+        return processNextChunk();
     }
 
     return {
@@ -292,18 +296,15 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
                     setProgressPercent(0);
 
                     callIndexService('local_smartsearch_start_indexing').then(function(response) {
-                        if (response && response.status === 'started') {
-                            startProgressPolling(btn, stats);
-                        } else if (response && response.status === 'already_running') {
-                            if (stats) {
+                        if (response && (response.status === 'started' || response.status === 'already_running')) {
+                            if (response.status === 'already_running' && stats) {
                                 stats.textContent = M.util.get_string('indexing_already_running', 'local_smartsearch');
                             }
-                            startProgressPolling(btn, stats);
-                        } else {
-                            btn.disabled = false;
-                            if (stats) {
-                                stats.textContent = M.util.get_string('error_starting_indexing', 'local_smartsearch');
-                            }
+                            return startChunkedIndexing(btn, stats);
+                        }
+                        btn.disabled = false;
+                        if (stats) {
+                            stats.textContent = M.util.get_string('error_starting_indexing', 'local_smartsearch');
                         }
                         return undefined;
                     }).catch(function() {

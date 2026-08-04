@@ -44,11 +44,16 @@ class course extends base {
      * @param int $modifiedfrom Timestamp
      * @return \moodle_recordset|null
      */
-    public function get_recordset(int $modifiedfrom = 0): ?\moodle_recordset {
+    public function get_recordset(int $modifiedfrom = 0, int $afterid = 0, int $limit = 0): ?\moodle_recordset {
         global $DB;
 
         $params = [];
         $where = 'id > 1'; // Exclude site course.
+
+        if ($afterid > 0) {
+            $where .= ' AND id > ?';
+            $params[] = $afterid;
+        }
 
         if ($modifiedfrom > 0) {
             $where .= ' AND (timecreated > ? OR timemodified > ?)';
@@ -61,7 +66,9 @@ class course extends base {
             $where,
             $params,
             'id ASC',
-            'id, fullname, shortname, summary, category, visible, idnumber'
+            'id, fullname, shortname, summary, category, visible, idnumber',
+            0,
+            $limit > 0 ? $limit : 0
         );
     }
 

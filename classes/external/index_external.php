@@ -53,7 +53,7 @@ class index_external extends \external_api {
     }
 
     /**
-     * Queue a full reindex adhoc task.
+     * Begin a resumable chunked full reindex.
      *
      * @return array
      */
@@ -64,23 +64,57 @@ class index_external extends \external_api {
         self::validate_context($context);
         require_capability('local/smartsearch:manage', $context);
 
-        $inprogress = get_config('local_smartsearch', 'indexing_in_progress');
-        if (!empty($inprogress)) {
-            return ['status' => 'already_running'];
-        }
+        return \local_smartsearch\indexer::begin_chunked_index();
+    }
 
-        set_config('indexing_in_progress', time(), 'local_smartsearch');
-        set_config('indexing_stats', json_encode([
-            'total' => 0,
-            'indexed' => 0,
-            'skipped' => 0,
-            'errors' => 0,
-        ]), 'local_smartsearch');
+    /**
+     * Parameters for process_indexing_chunk.
+     *
+     * @return \external_function_parameters
+     */
+    public static function process_indexing_chunk_parameters() {
+        return new \external_function_parameters([
+            'chunksize' => new \external_value(PARAM_INT, 'Items per chunk', VALUE_DEFAULT, 100),
+        ]);
+    }
 
-        $task = new \local_smartsearch\task\index_adhoc_task();
-        \core\task\manager::queue_adhoc_task($task, true);
+    /**
+     * Return structure for process_indexing_chunk.
+     *
+     * @return \external_single_structure
+     */
+    public static function process_indexing_chunk_returns() {
+        return new \external_single_structure([
+            'done' => new \external_value(PARAM_BOOL, 'Whether indexing finished'),
+            'in_progress' => new \external_value(PARAM_BOOL, 'Whether indexing is still running'),
+            'stats' => new \external_value(PARAM_RAW, 'JSON encoded indexing stats'),
+            'timestamp' => new \external_value(PARAM_INT, 'Server time when chunk finished'),
+        ]);
+    }
 
-        return ['status' => 'started'];
+    /**
+     * Process the next indexing chunk.
+     *
+     * @param int $chunksize Items to process
+     * @return array
+     */
+    public static function process_indexing_chunk(int $chunksize = 100) {
+        $params = self::validate_parameters(self::process_indexing_chunk_parameters(), [
+            'chunksize' => $chunksize,
+        ]);
+
+        $context = \context_system::instance();
+        self::validate_context($context);
+        require_capability('local/smartsearch:manage', $context);
+
+        $result = \local_smartsearch\indexer::process_chunk((int) $params['chunksize']);
+
+        return [
+            'done' => !empty($result['done']),
+            'in_progress' => !empty($result['in_progress']),
+            'stats' => json_encode($result['stats'] ?? []),
+            'timestamp' => (int) ($result['timestamp'] ?? time()),
+        ];
     }
 
     /**
@@ -165,7 +199,7 @@ class index_external extends \external_api {
     }
 
     /**
-     * Request indexing stop (adhoc task exits on next progress check).
+     * Stop chunked indexing.
      *
      * @return array
      */
@@ -176,7 +210,7 @@ class index_external extends \external_api {
         self::validate_context($context);
         require_capability('local/smartsearch:manage', $context);
 
-        unset_config('indexing_in_progress', 'local_smartsearch');
+        \local_smartsearch\indexer::cancel_chunked_index();
 
         return ['status' => 'stopped'];
     }

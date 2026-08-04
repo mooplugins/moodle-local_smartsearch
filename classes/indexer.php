@@ -272,6 +272,497 @@ class indexer {
     }
 
     /**
+     * Default items processed per external-service chunk.
+     */
+    public const CHUNK_SIZE = 100;
+
+    /**
+     * Begin a resumable full reindex driven by process_chunk().
+     *
+     * @return array{status: string}
+     */
+    public static function begin_chunked_index(): array {
+        if (!empty(get_config('local_smartsearch', 'indexing_in_progress'))) {
+            return ['status' => 'already_running'];
+        }
+
+        global $DB;
+        $dbman = $DB->get_manager();
+        $table = new \xmldb_table('local_smartsearch_index');
+        if (!$dbman->table_exists($table)) {
+            throw new \moodle_exception('error_indexing', 'local_smartsearch', '', 'Index table missing');
+        }
+
+        \local_smartsearch\category_path::reset_cache();
+        \local_smartsearch\search_area\activity::reset_bulk_index_cache();
+
+        $areatypes = [];
+        foreach (self::get_enabled_search_areas() as $area) {
+            $areatypes[] = $area->get_record_type();
+        }
+
+        $stats = [
+            'total' => 0,
+            'indexed' => 0,
+            'skipped' => 0,
+            'errors' => 0,
+            'error_details' => [],
+            'percent' => 0,
+            'areas_total' => count($areatypes),
+            'areas_done' => 0,
+            'phase' => empty($areatypes) ? 'cleanup' : 'areas',
+        ];
+
+        $state = [
+            'areas' => $areatypes,
+            'area_idx' => 0,
+            'cursor' => 0,
+            'area_total' => 0,
+            'area_processed' => 0,
+            'stats' => $stats,
+            'started' => time(),
+            'phase' => empty($areatypes) ? 'cleanup' : 'areas',
+        ];
+
+        if (!empty($areatypes)) {
+            $firstarea = self::get_search_area_by_type($areatypes[0]);
+            if ($firstarea) {
+                $state['area_total'] = self::estimate_area_total($firstarea);
+            }
+        }
+
+        set_config('indexing_in_progress', time(), 'local_smartsearch');
+        self::save_chunk_state($state);
+        self::persist_stats($stats);
+
+        return ['status' => 'started'];
+    }
+
+    /**
+     * Process the next chunk of a resumable full reindex.
+     *
+     * @param int $chunksize Max items to process in this call
+     * @return array{done: bool, in_progress: bool, stats: array, timestamp: int}
+     */
+    public static function process_chunk(int $chunksize = self::CHUNK_SIZE): array {
+        if (empty(get_config('local_smartsearch', 'indexing_in_progress'))) {
+            $stats = self::load_stats();
+            return [
+                'done' => true,
+                'in_progress' => false,
+                'stats' => $stats,
+                'timestamp' => time(),
+            ];
+        }
+
+        $state = self::load_chunk_state();
+        if ($state === null) {
+            // Recover from missing state: abort cleanly.
+            unset_config('indexing_in_progress', 'local_smartsearch');
+            $stats = self::load_stats();
+            return [
+                'done' => true,
+                'in_progress' => false,
+                'stats' => $stats,
+                'timestamp' => time(),
+            ];
+        }
+
+        $chunksize = max(1, min(500, $chunksize));
+        $remaining = $chunksize;
+
+        if (($state['phase'] ?? 'areas') === 'areas') {
+            while ($remaining > 0 && ($state['area_idx'] ?? 0) < count($state['areas'])) {
+                $areatype = $state['areas'][$state['area_idx']];
+                $area = self::get_search_area_by_type($areatype);
+                if (!$area || !$area->is_enabled()) {
+                    $state['area_idx']++;
+                    $state['cursor'] = 0;
+                    $state['area_processed'] = 0;
+                    $state['area_total'] = 0;
+                    continue;
+                }
+
+                // Initialise per-area totals on first chunk of an area.
+                if ((int) ($state['cursor'] ?? 0) === 0 && (int) ($state['area_processed'] ?? 0) === 0) {
+                    $state['area_total'] = self::estimate_area_total($area);
+                    $state['area_processed'] = 0;
+                }
+
+                $result = self::process_area_chunk($area, (int) $state['cursor'], $remaining, $state['stats']);
+                $state['stats'] = $result['stats'];
+                $state['cursor'] = $result['cursor'];
+                $state['area_processed'] = (int) ($state['area_processed'] ?? 0) + (int) $result['processed'];
+                $remaining -= $result['processed'];
+
+                if ($result['area_done']) {
+                    // Prefer actual processed count as the area size once finished.
+                    $state['area_total'] = max((int) ($state['area_total'] ?? 0), (int) ($state['area_processed'] ?? 0));
+                    $state['area_idx']++;
+                    $state['cursor'] = 0;
+                    $state['area_processed'] = 0;
+                    $state['area_total'] = 0;
+                }
+
+                $state['stats'] = self::with_area_progress($state);
+                self::persist_stats($state['stats']);
+                self::save_chunk_state($state);
+
+                // Re-check stop flag between sub-area progress.
+                if (empty(get_config('local_smartsearch', 'indexing_in_progress'))) {
+                    self::clear_chunk_state();
+                    return [
+                        'done' => true,
+                        'in_progress' => false,
+                        'stats' => $state['stats'],
+                        'timestamp' => time(),
+                    ];
+                }
+            }
+
+            if (($state['area_idx'] ?? 0) >= count($state['areas'])) {
+                $state['phase'] = 'cleanup';
+                $state['stats'] = self::with_area_progress($state);
+                self::save_chunk_state($state);
+            }
+        }
+
+        if (($state['phase'] ?? '') === 'cleanup') {
+            $state['stats'] = self::with_area_progress($state);
+            self::persist_stats($state['stats']);
+            self::cleanup_orphaned_entries();
+            set_config('last_index_time', time(), 'local_smartsearch');
+            if (!empty($state['stats']['error_details'])) {
+                set_config('indexing_error_details', json_encode($state['stats']['error_details']), 'local_smartsearch');
+            } else {
+                unset_config('indexing_error_details', 'local_smartsearch');
+            }
+            $state['stats']['percent'] = 100;
+            $state['stats']['phase'] = 'done';
+            $state['stats']['areas_done'] = count($state['areas'] ?? []);
+            self::persist_stats($state['stats']);
+            self::clear_chunk_state();
+            unset_config('indexing_in_progress', 'local_smartsearch');
+
+            return [
+                'done' => true,
+                'in_progress' => false,
+                'stats' => $state['stats'],
+                'timestamp' => time(),
+            ];
+        }
+
+        $state['stats'] = self::with_area_progress($state);
+        self::persist_stats($state['stats']);
+        self::save_chunk_state($state);
+
+        return [
+            'done' => false,
+            'in_progress' => true,
+            'stats' => $state['stats'],
+            'timestamp' => time(),
+        ];
+    }
+
+    /**
+     * Cancel a chunked reindex.
+     */
+    public static function cancel_chunked_index(): void {
+        unset_config('indexing_in_progress', 'local_smartsearch');
+        self::clear_chunk_state();
+    }
+
+    /**
+     * Estimate how many items an area will contribute.
+     *
+     * @param \local_smartsearch\search_area\base $area Area instance
+     * @return int
+     */
+    protected static function estimate_area_total(\local_smartsearch\search_area\base $area): int {
+        global $DB;
+
+        try {
+            if ($area instanceof \local_smartsearch\search_area\setting) {
+                return count($area->index_all_settings());
+            }
+            if ($area instanceof \local_smartsearch\search_area\plugin) {
+                return count($area->index_all_plugin_pages());
+            }
+            if ($area instanceof \local_smartsearch\search_area\course) {
+                return (int) $DB->count_records_select('course', 'id > 1');
+            }
+            if ($area instanceof \local_smartsearch\search_area\user) {
+                return (int) $DB->count_records_select('user', 'deleted = 0');
+            }
+            if ($area instanceof \local_smartsearch\search_area\category) {
+                return (int) $DB->count_records('course_categories');
+            }
+            if ($area instanceof \local_smartsearch\search_area\activity) {
+                $sql = "SELECT COUNT(1)
+                          FROM {course_modules} cm
+                          JOIN {modules} m ON m.id = cm.module AND m.visible = 1
+                          JOIN {course} c ON c.id = cm.course
+                         WHERE cm.deletioninprogress = 0";
+                return (int) $DB->count_records_sql($sql);
+            }
+        } catch (\Throwable $e) {
+            debugging('Smart Search: Failed estimating area total: ' . $e->getMessage(), DEBUG_NORMAL);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Attach area-based progress metadata/percent to stats.
+     *
+     * @param array $state Chunk state
+     * @return array
+     */
+    protected static function with_area_progress(array $state): array {
+        $stats = $state['stats'] ?? [];
+        $areas = $state['areas'] ?? [];
+        $areastotal = count($areas);
+        $areaidx = (int) ($state['area_idx'] ?? 0);
+        $phase = $state['phase'] ?? 'areas';
+
+        $stats['areas_total'] = $areastotal;
+        $stats['areas_done'] = min($areaidx, $areastotal);
+        $stats['phase'] = $phase;
+
+        if ($phase === 'cleanup') {
+            $stats['percent'] = 99;
+            return $stats;
+        }
+
+        if ($areastotal <= 0) {
+            $stats['percent'] = 100;
+            return $stats;
+        }
+
+        $areatotal = max(0, (int) ($state['area_total'] ?? 0));
+        $areaprocessed = max(0, (int) ($state['area_processed'] ?? 0));
+        $fraction = 0.0;
+        if ($areatotal > 0) {
+            $fraction = min(1.0, $areaprocessed / $areatotal);
+        } else if ($areaprocessed > 0) {
+            // Unknown area size: nudge within the current area slot.
+            $fraction = 0.5;
+        }
+
+        $raw = (($areaidx + $fraction) / $areastotal) * 100;
+        // Keep 100% reserved for completion.
+        $stats['percent'] = (int) max(0, min(99, round($raw)));
+
+        return $stats;
+    }
+
+    /**
+     * Process up to $limit items for one search area.
+     *
+     * @param \local_smartsearch\search_area\base $area Area instance
+     * @param int $cursor Resume cursor (offset or last id)
+     * @param int $limit Max items
+     * @param array $stats Stats accumulator
+     * @return array{processed: int, cursor: int, area_done: bool, stats: array}
+     */
+    protected static function process_area_chunk(
+        \local_smartsearch\search_area\base $area,
+        int $cursor,
+        int $limit,
+        array $stats
+    ): array {
+        global $DB;
+
+        if ($area instanceof \local_smartsearch\search_area\setting) {
+            $items = array_values($area->index_all_settings());
+            $slice = array_slice($items, $cursor, $limit);
+            $processed = 0;
+            foreach ($slice as $settingdata) {
+                $stats['total']++;
+                $processed++;
+                try {
+                    $itemdata = $area->index_setting(
+                        $settingdata['setting'],
+                        $settingdata['path'],
+                        $settingdata['page'] ?? null
+                    );
+                    if ($itemdata) {
+                        if (self::add_to_index($itemdata)) {
+                            $stats['indexed']++;
+                        } else {
+                            $stats['errors']++;
+                        }
+                    } else {
+                        $stats['skipped']++;
+                    }
+                } catch (\Throwable $e) {
+                    $stats['errors']++;
+                    debugging('Smart Search chunk setting error: ' . $e->getMessage(), DEBUG_NORMAL);
+                }
+            }
+            $newcursor = $cursor + $processed;
+            return [
+                'processed' => $processed,
+                'cursor' => $newcursor,
+                'area_done' => $newcursor >= count($items),
+                'stats' => $stats,
+            ];
+        }
+
+        if ($area instanceof \local_smartsearch\search_area\plugin) {
+            $items = array_values($area->index_all_plugin_pages());
+            $slice = array_slice($items, $cursor, $limit);
+            $processed = 0;
+            foreach ($slice as $pagedata) {
+                $stats['total']++;
+                $processed++;
+                try {
+                    $itemdata = $area->index_plugin_page($pagedata['node'], $pagedata['path']);
+                    if ($itemdata) {
+                        if (self::add_to_index($itemdata)) {
+                            $stats['indexed']++;
+                        } else {
+                            $stats['errors']++;
+                        }
+                    } else {
+                        $stats['skipped']++;
+                    }
+                } catch (\Throwable $e) {
+                    $stats['errors']++;
+                    debugging('Smart Search chunk plugin error: ' . $e->getMessage(), DEBUG_NORMAL);
+                }
+            }
+            $newcursor = $cursor + $processed;
+            return [
+                'processed' => $processed,
+                'cursor' => $newcursor,
+                'area_done' => $newcursor >= count($items),
+                'stats' => $stats,
+            ];
+        }
+
+        $bulkuserindex = $area instanceof \local_smartsearch\search_area\user;
+        if ($bulkuserindex) {
+            \local_smartsearch\search_area\user::begin_bulk_index();
+        } else if ($area instanceof \local_smartsearch\search_area\activity) {
+            \local_smartsearch\search_area\activity::reset_bulk_index_cache();
+        }
+
+        $existingindex = [];
+        $existingrecords = $DB->get_records(
+            'local_smartsearch_index',
+            ['recordtype' => $area->get_record_type()],
+            '',
+            'recordid, id'
+        );
+        foreach ($existingrecords as $existingrecord) {
+            $existingindex[(int) $existingrecord->recordid] = (int) $existingrecord->id;
+        }
+
+        $recordset = $area->get_recordset(0, $cursor, $limit);
+        $processed = 0;
+        $lastid = $cursor;
+        if ($recordset) {
+            foreach ($recordset as $record) {
+                $stats['total']++;
+                $processed++;
+                $lastid = (int) $record->id;
+                try {
+                    $itemdata = $area->index_item((int) $record->id, $record);
+                    if ($itemdata) {
+                        if (self::add_to_index($itemdata, $existingindex)) {
+                            $stats['indexed']++;
+                        } else {
+                            $stats['errors']++;
+                        }
+                    } else {
+                        $stats['skipped']++;
+                    }
+                } catch (\Throwable $e) {
+                    $stats['errors']++;
+                    debugging('Smart Search chunk item error: ' . $e->getMessage(), DEBUG_NORMAL);
+                }
+            }
+            $recordset->close();
+        }
+
+        if ($bulkuserindex) {
+            \local_smartsearch\search_area\user::end_bulk_index();
+        }
+
+        return [
+            'processed' => $processed,
+            'cursor' => $lastid,
+            'area_done' => $processed < $limit,
+            'stats' => $stats,
+        ];
+    }
+
+    /**
+     * Persist chunk state to plugin config.
+     *
+     * @param array $state State payload
+     */
+    protected static function save_chunk_state(array $state): void {
+        // Drop bulky error details from state (kept in stats config separately if needed).
+        if (isset($state['stats']['error_details']) && count($state['stats']['error_details']) > 20) {
+            $state['stats']['error_details'] = array_slice($state['stats']['error_details'], -20);
+        }
+        set_config('indexing_chunk_state', json_encode($state), 'local_smartsearch');
+    }
+
+    /**
+     * Load chunk state.
+     *
+     * @return array|null
+     */
+    protected static function load_chunk_state(): ?array {
+        $raw = get_config('local_smartsearch', 'indexing_chunk_state');
+        if (empty($raw)) {
+            return null;
+        }
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * Clear chunk state.
+     */
+    protected static function clear_chunk_state(): void {
+        unset_config('indexing_chunk_state', 'local_smartsearch');
+    }
+
+    /**
+     * Persist stats for progress polling.
+     *
+     * @param array $stats Stats
+     */
+    protected static function persist_stats(array $stats): void {
+        set_config('indexing_stats', json_encode($stats), 'local_smartsearch');
+    }
+
+    /**
+     * Load latest stats.
+     *
+     * @return array
+     */
+    protected static function load_stats(): array {
+        $raw = get_config('local_smartsearch', 'indexing_stats');
+        if (!empty($raw)) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return [
+            'total' => 0,
+            'indexed' => 0,
+            'skipped' => 0,
+            'errors' => 0,
+        ];
+    }
+
+    /**
      * Index a single item.
      *
      * @param string $recordtype The type of record
@@ -447,6 +938,7 @@ class indexer {
             return false;
         }
     }
+
 
     /**
      * Clean up orphaned index entries (items that no longer exist).
