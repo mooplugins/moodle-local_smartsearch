@@ -24,21 +24,42 @@
 define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Templates, Notification) {
 
     /**
-     * Fetch JSON from the indexing AJAX endpoint.
+     * Call an indexing external service.
      *
-     * @param {string} action Action name
+     * @param {string} methodname Web service method name
      * @return {Promise<Object>}
      */
-    function fetchIndexAction(action) {
-        var url = M.cfg.wwwroot + '/local/smartsearch/ajax/index.php?' +
-            'action=' + encodeURIComponent(action) +
-            '&sesskey=' + encodeURIComponent(M.cfg.sesskey);
-        return fetch(url, {
-            method: 'GET',
-            credentials: 'same-origin'
-        }).then(function(response) {
-            return response.json();
-        });
+    function callIndexService(methodname) {
+        return Ajax.call([{
+            methodname: methodname,
+            args: {}
+        }])[0];
+    }
+
+    /**
+     * Normalise indexing progress payload from the external service.
+     *
+     * @param {Object} response External service response
+     * @return {Object}
+     */
+    function normaliseProgressResponse(response) {
+        var stats = null;
+        if (response && response.stats) {
+            if (typeof response.stats === 'string') {
+                try {
+                    stats = JSON.parse(response.stats);
+                } catch (e) {
+                    stats = null;
+                }
+            } else if (typeof response.stats === 'object') {
+                stats = response.stats;
+            }
+        }
+        return {
+            in_progress: !!(response && response.in_progress),
+            stats: stats,
+            timestamp: response && response.timestamp ? response.timestamp : 0
+        };
     }
 
     /**
@@ -178,7 +199,8 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
         var lastPercent = 0;
 
         var pollProgress = function() {
-            void fetchIndexAction('progress').then(function(progressResponse) {
+            void callIndexService('local_smartsearch_get_indexing_progress').then(function(rawResponse) {
+                var progressResponse = normaliseProgressResponse(rawResponse);
                 if (!progressResponse) {
                     return;
                 }
@@ -269,7 +291,7 @@ define(['core/ajax', 'core/templates', 'core/notification'], function(Ajax, Temp
                     }
                     setProgressPercent(0);
 
-                    fetchIndexAction('start').then(function(response) {
+                    callIndexService('local_smartsearch_start_indexing').then(function(response) {
                         if (response && response.status === 'started') {
                             startProgressPolling(btn, stats);
                         } else if (response && response.status === 'already_running') {
