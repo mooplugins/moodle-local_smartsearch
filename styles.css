@@ -285,25 +285,25 @@ button.smartsearch-esc {
     text-transform: none;
 }
 
-.smartsearch-result-item {
+.local-smartsearch .smartsearch-result-item {
     padding: 12px 16px;
     margin: 0;
     cursor: pointer;
     border: 0;
     border-bottom: 1px solid var(--ss-border);
     border-radius: 0;
-    background: var(--ss-surface);
+    background-color: var(--ss-surface);
     color: var(--ss-text);
     transition: background-color 0.15s ease;
 }
 
 .local-smartsearch .smartsearch-result-item:hover {
-    background: var(--ss-surface-hover, #f1f5fa) !important;
+    background-color: var(--ss-surface-hover);
 }
 
 .local-smartsearch .smartsearch-result-item.selected,
 .local-smartsearch .smartsearch-result-item[aria-selected="true"] {
-    background: var(--ss-accent-soft, #eef4ff) !important;
+    background-color: var(--ss-accent-soft);
     box-shadow: inset 3px 0 0 var(--ss-accent);
 }
 
