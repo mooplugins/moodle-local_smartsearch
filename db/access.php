@@ -26,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
     'local/smartsearch:search' => [
+        'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
@@ -37,6 +38,7 @@ $capabilities = [
         ],
     ],
     'local/smartsearch:manage' => [
+        'riskbitmask' => RISK_CONFIG | RISK_DATALOSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [

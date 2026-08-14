@@ -61,12 +61,14 @@ Read more: https://www.mooplugins.com/blog/smart-search-moodle-plugin/?utm_sourc
 
 ## Requirements
 
-- Moodle 4.5 or higher (CI tested on 4.5, 5.0, 5.2)
-- MySQL/MariaDB with FULLTEXT index support
+- Moodle 4.5 or higher (CI tested on 4.5, 5.0, and 5.2)
+- MariaDB, MySQL, or PostgreSQL
+
+Search matching uses SQL `LIKE` on all supported databases. During upgrade, an optional FULLTEXT index may be created on MariaDB/MySQL only. PostgreSQL does not need that index.
 
 ## Installation
 
-1. Copy the `smartsearch` folder to `local/smartsearch` in your Moodle codebase.
+1. Copy this plugin into `local/smartsearch` in your Moodle codebase.
 2. Visit **Site administration → Notifications** to install the database tables.
 3. Configure at **Site administration → Plugins → Local plugins → Smart Search**.
 4. Run **Index now** on the settings page (or wait for the scheduled indexing task).

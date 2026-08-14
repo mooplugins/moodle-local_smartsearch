@@ -59,13 +59,12 @@ function xmldb_local_smartsearch_upgrade($oldversion) {
                 debugging("Could not check indexes: " . $e->getMessage());
             }
 
-            if (!$indexexists) {
-                // Create FULLTEXT index using raw SQL.
+            if (!$indexexists && $DB->get_dbfamily() === 'mysql') {
+                // Optional MySQL/MariaDB FULLTEXT index. Search uses LIKE on all engines.
                 $sql = "CREATE FULLTEXT INDEX idx_fulltext ON {local_smartsearch_index} (title, subtitle)";
                 try {
                     $DB->execute($sql);
                 } catch (\Exception $e) {
-                    // Index might already exist or there might be an issue.
                     debugging("Could not create FULLTEXT index: " . $e->getMessage());
                 }
             }
