@@ -13,6 +13,7 @@
         "query": "course",
         "search": "Search",
         "searchplaceholder": "Search users, courses, activities, settings...",
+        "clearsearch": "Clear search",
         "resultslabel": "Search results",
         "filterslabel": "Results from",
         "paginationlabel": "Search result pages",
@@ -22,19 +23,30 @@
         ]
     }
 }}
-<div class="smartsearch-page">
+<div class="local-smartsearch smartsearch-page">
     <div id="smartsearch-results-count" class="smartsearch-results-count mb-2" aria-live="polite"></div>
     <div class="smartsearch-page-header">
         <form class="smartsearch-page-form" role="search" action="#" method="get">
             <label class="accesshide" for="smartsearch-page-input">{{searchplaceholder}}</label>
-            <input type="text"
-                   id="smartsearch-page-input"
-                   class="smartsearch-page-input"
-                   name="q"
-                   value="{{query}}"
-                   placeholder="{{searchplaceholder}}"
-                   autocomplete="off"
-                   aria-label="{{searchplaceholder}}">
+            <div class="smartsearch-input-wrap">
+                <span class="smartsearch-input-icon" aria-hidden="true">{{#pix}}i/search, core{{/pix}}</span>
+                <input type="text"
+                       id="smartsearch-page-input"
+                       class="smartsearch-input smartsearch-page-input"
+                       name="q"
+                       value="{{query}}"
+                       placeholder="{{searchplaceholder}}"
+                       autocomplete="off"
+                       aria-label="{{searchplaceholder}}">
+                <button type="button"
+                        class="smartsearch-clear"
+                        id="smartsearch-page-clear"
+                        aria-label="{{clearsearch}}"
+                        title="{{clearsearch}}"
+                        hidden>
+                    {{#pix}}i/window_close, core{{/pix}}
+                </button>
+            </div>
             <button class="btn btn-primary smartsearch-page-submit" type="submit">{{search}}</button>
         </form>
         <div class="smartsearch-page-filters" role="group" aria-label="{{filterslabel}}">

@@ -11,32 +11,58 @@
     {
         "id": "1",
         "recordid": "42",
+        "recordtype": "course",
+        "icon": "i/course",
+        "typelabel": "Courses",
+        "isuser": false,
+        "haspicture": false,
+        "pictureurl": "",
+        "initials": "",
         "url": "/course/view.php?id=2",
         "titlehtml": "Example <mark>course</mark>",
         "hassubtitle": true,
-        "subtitle": "Category path",
+        "subtitlehtml": "Category path",
         "hascontextpath": false,
         "hasactions": true,
         "actions": [
-            {"url": "/course/view.php?id=2", "label": "View", "icon": "graduation-cap"}
+            {"url": "/course/view.php?id=2", "label": "View", "icon": "i/preview"}
         ]
     }
 }}
-<div class="smartsearch-result-item" data-id="{{id}}" data-recordid="{{recordid}}">
+<div class="smartsearch-result-item" data-id="{{id}}" data-recordid="{{recordid}}" data-recordtype="{{recordtype}}">
     <a href="{{url}}" class="smartsearch-result-link">
-        <div class="smartsearch-result-title">{{{titlehtml}}}</div>
-        {{#hassubtitle}}
-        <div class="smartsearch-result-subtitle">{{subtitle}}</div>
-        {{/hassubtitle}}
-        {{#hascontextpath}}
-        <div class="smartsearch-result-context">{{contextpath}}</div>
-        {{/hascontextpath}}
+        <span class="smartsearch-result-icon{{#isuser}} smartsearch-result-avatar{{/isuser}}" title="{{typelabel}}" aria-hidden="true">
+            {{#isuser}}
+                {{#haspicture}}
+                    <img class="userpicture" src="{{pictureurl}}" alt="" width="35" height="35">
+                {{/haspicture}}
+                {{^haspicture}}
+                    <span class="userinitials size-35">{{initials}}</span>
+                {{/haspicture}}
+            {{/isuser}}
+            {{^isuser}}
+                {{#pix}}{{icon}}, core, {{typelabel}}{{/pix}}
+            {{/isuser}}
+        </span>
+        <span class="smartsearch-result-body">
+            <span class="smartsearch-result-title">{{{titlehtml}}}</span>
+            {{#hassubtitle}}
+            <span class="smartsearch-result-subtitle">{{{subtitlehtml}}}</span>
+            {{/hassubtitle}}
+            {{#hascontextpath}}
+            <span class="smartsearch-result-context">{{{contexthtml}}}</span>
+            {{/hascontextpath}}
+        </span>
+        <span class="smartsearch-result-go" aria-hidden="true">
+            {{#pix}}i/next, core{{/pix}}
+        </span>
     </a>
     {{#hasactions}}
     <div class="smartsearch-result-actions">
         {{#actions}}
-        <a href="{{url}}" class="smartsearch-action" title="{{label}}">
-            <i class="icon fa fa-{{icon}}"></i>
+        <a href="{{url}}" class="smartsearch-action">
+            {{#pix}}{{icon}}, core, {{label}}{{/pix}}
+            <span>{{label}}</span>
         </a>
         {{/actions}}
     </div>

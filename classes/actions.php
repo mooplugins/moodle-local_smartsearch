@@ -54,7 +54,7 @@ class actions {
             $actions[] = [
                 'label' => get_string('action_sendmessage', 'local_smartsearch'),
                 'url' => new \moodle_url('/message/index.php', ['id' => $targetuserid]),
-                'icon' => 'message',
+                'icon' => 'comment',
             ];
         }
 
@@ -63,7 +63,7 @@ class actions {
             $actions[] = [
                 'label' => get_string('action_loginas', 'local_smartsearch'),
                 'url' => new \moodle_url('/course/loginas.php', ['id' => $targetuserid, 'sesskey' => sesskey()]),
-                'icon' => 'login',
+                'icon' => 'right-to-bracket',
             ];
         }
 

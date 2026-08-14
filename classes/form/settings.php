@@ -110,6 +110,42 @@ class settings extends \moodleform {
         );
         $mform->setDefault('local_smartsearch_enable_categories', get_config('local_smartsearch', 'enable_categories', 1));
 
+        $mform->addElement('header', 'appearance', get_string('appearance', 'local_smartsearch'));
+        $accentoptions = [
+            'default' => get_string('accent_mode_default', 'local_smartsearch'),
+            'theme' => get_string('accent_mode_theme', 'local_smartsearch'),
+            'custom' => get_string('accent_mode_custom', 'local_smartsearch'),
+        ];
+        $mform->addElement(
+            'select',
+            'local_smartsearch_accent_mode',
+            get_string('accent_mode', 'local_smartsearch'),
+            $accentoptions
+        );
+        $mform->setDefault('local_smartsearch_accent_mode', get_config('local_smartsearch', 'accent_mode') ?: 'default');
+        $mform->addElement(
+            'static',
+            'local_smartsearch_accent_mode_desc',
+            '',
+            get_string('accent_mode_desc', 'local_smartsearch')
+        );
+
+        $mform->addElement(
+            'text',
+            'local_smartsearch_accent_color',
+            get_string('accent_custom', 'local_smartsearch'),
+            ['size' => 8]
+        );
+        $mform->setType('local_smartsearch_accent_color', PARAM_TEXT);
+        $mform->setDefault('local_smartsearch_accent_color', get_config('local_smartsearch', 'accent_color') ?: '#1C6CF7');
+        $mform->addElement(
+            'static',
+            'local_smartsearch_accent_color_desc',
+            '',
+            get_string('accent_custom_desc', 'local_smartsearch')
+        );
+        $mform->disabledIf('local_smartsearch_accent_color', 'local_smartsearch_accent_mode', 'neq', 'custom');
+
         // Note: Role-based visibility removed. Access control is handled by Moodle's capability system.
         // Each search result is filtered based on the user's capabilities
         // (e.g., moodle/user:viewdetails, moodle/course:view, etc.).
@@ -207,5 +243,22 @@ class settings extends \moodleform {
             . 'overflow-y: auto;"></div>');
 
         $this->add_action_buttons();
+    }
+
+    /**
+     * Validate settings.
+     *
+     * @param array $data Submitted data
+     * @param array $files Submitted files
+     * @return array
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        $mode = $data['local_smartsearch_accent_mode'] ?? 'default';
+        $color = trim($data['local_smartsearch_accent_color'] ?? '');
+        if ($mode === 'custom' && !preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
+            $errors['local_smartsearch_accent_color'] = get_string('accent_custom_invalid', 'local_smartsearch');
+        }
+        return $errors;
     }
 }

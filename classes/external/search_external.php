@@ -183,9 +183,86 @@ class search_external extends \external_api {
             }
         }
 
+        $formatted = self::attach_user_avatars($formatted);
+
         return [
             'results' => json_encode($formatted, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
         ];
+    }
+
+    /**
+     * Add Moodle user pictures or initials to user results.
+     *
+     * @param array $formatted Grouped search results
+     * @return array
+     */
+    private static function attach_user_avatars(array $formatted): array {
+        global $DB, $PAGE;
+
+        if (empty($formatted['user']) || !is_array($formatted['user'])) {
+            return $formatted;
+        }
+
+        $userids = [];
+        foreach ($formatted['user'] as $item) {
+            $userid = (int) ($item['recordid'] ?? 0);
+            if ($userid > 0) {
+                $userids[$userid] = $userid;
+            }
+        }
+
+        $users = [];
+        if (!empty($userids)) {
+            $fields = 'id, picture, imagealt, firstname, lastname, firstnamephonetic, lastnamephonetic, ' .
+                'middlename, alternatename, email';
+            $users = $DB->get_records_list('user', 'id', $userids, '', $fields);
+        }
+
+        foreach ($formatted['user'] as $index => $item) {
+            $userid = (int) ($item['recordid'] ?? 0);
+            $user = $users[$userid] ?? null;
+            $initials = '';
+            $pictureurl = '';
+            $haspicture = false;
+
+            if ($user) {
+                $initials = \core_user::get_initials($user);
+                if (!empty($user->picture)) {
+                    $userpicture = new \user_picture($user);
+                    $userpicture->size = 35;
+                    $pictureurl = $userpicture->get_url($PAGE)->out(false);
+                    $haspicture = $pictureurl !== '';
+                }
+            }
+            if ($initials === '') {
+                $initials = self::initials_from_title((string) ($item['title'] ?? ''));
+            }
+
+            $formatted['user'][$index]['initials'] = $initials;
+            $formatted['user'][$index]['pictureurl'] = $pictureurl;
+            $formatted['user'][$index]['haspicture'] = $haspicture;
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Build initials from a display name.
+     *
+     * @param string $title Full name
+     * @return string
+     */
+    private static function initials_from_title(string $title): string {
+        $parts = preg_split('/\s+/', trim($title), -1, PREG_SPLIT_NO_EMPTY);
+        if (!$parts) {
+            return '';
+        }
+        if (count($parts) === 1) {
+            return \core_text::strtoupper(\core_text::substr($parts[0], 0, 2));
+        }
+        $first = \core_text::substr($parts[0], 0, 1);
+        $last = \core_text::substr($parts[count($parts) - 1], 0, 1);
+        return \core_text::strtoupper($first . $last);
     }
 
     /**
@@ -201,6 +278,7 @@ class search_external extends \external_api {
         if (!is_scalar($value)) {
             return '';
         }
-        return trim(strip_tags((string) $value));
+        $text = html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return trim($text);
     }
 }

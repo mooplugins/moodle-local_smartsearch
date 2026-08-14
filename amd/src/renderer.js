@@ -43,6 +43,66 @@ define(['core/templates'], function(Templates) {
     }
 
     /**
+     * Get Moodle pix icon name for a record type.
+     *
+     * @param {string} recordtype Record type key
+     * @return {string}
+     */
+    function getTypeIcon(recordtype) {
+        var icons = {
+            user: 'i/user',
+            course: 'i/course',
+            activity: 'i/section',
+            setting: 'i/settings',
+            plugin: 'i/mnethost',
+            category: 'i/folder'
+        };
+        return icons[recordtype] || 'i/search';
+    }
+
+    /**
+     * Map an action icon to a Moodle pix name.
+     *
+     * @param {string} icon Action icon key
+     * @return {string}
+     */
+    function getActionIcon(icon) {
+        if (icon && icon.indexOf('/') !== -1) {
+            return icon;
+        }
+        var icons = {
+            user: 'i/user',
+            comment: 'i/sendmessage',
+            message: 'i/sendmessage',
+            'right-to-bracket': 'i/switchrole',
+            login: 'i/switchrole',
+            edit: 'i/edit',
+            'graduation-cap': 'i/course',
+            users: 'i/users',
+            'puzzle-piece': 'i/section',
+            'folder-open': 'i/folder',
+            eye: 'i/preview',
+            link: 'i/link'
+        };
+        return icons[icon] || 'i/link';
+    }
+
+    /**
+     * Decode HTML entities to plain text.
+     *
+     * @param {string} str Encoded string
+     * @return {string}
+     */
+    function decodeEntities(str) {
+        if (!str || typeof str !== 'string') {
+            return '';
+        }
+        var textarea = document.createElement('textarea');
+        textarea.innerHTML = str;
+        return textarea.value;
+    }
+
+    /**
      * Escape regex special characters.
      *
      * @param {string} str String to escape
@@ -79,14 +139,14 @@ define(['core/templates'], function(Templates) {
      */
     function highlightText(text, query) {
         if (!text || typeof text !== 'string') {
-            return text || '';
+            return '';
         }
         if (!query || query.length < 3) {
-            return escapeHtml(text);
+            return escapeHtml(decodeEntities(text));
         }
 
         var regex = new RegExp('(' + escapeRegex(query) + ')', 'gi');
-        return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+        return escapeHtml(decodeEntities(text)).replace(regex, '<mark>$1</mark>');
     }
 
     /**
@@ -107,22 +167,52 @@ define(['core/templates'], function(Templates) {
             return {
                 url: action.url || '#',
                 label: action.label || '',
-                icon: action.icon || 'link'
+                icon: getActionIcon(action.icon)
             };
         });
+
+        var isuser = item.recordtype === 'user';
+        var initials = item.initials || '';
+        if (isuser && !initials) {
+            initials = getInitialsFromTitle(item.title || '');
+        }
 
         return {
             id: item.id || '',
             recordid: item.recordid || '',
+            recordtype: item.recordtype || '',
+            icon: getTypeIcon(item.recordtype),
+            typelabel: getCategoryLabel(item.recordtype),
+            isuser: isuser,
+            haspicture: !!(item.haspicture && item.pictureurl),
+            pictureurl: item.pictureurl || '',
+            initials: initials,
             url: item.url || '#',
             titlehtml: highlightText(item.title || '', query),
             hassubtitle: !!subtitle,
-            subtitle: escapeHtml(subtitle),
+            subtitlehtml: highlightText(subtitle, query),
             hascontextpath: !!item.contextpath,
-            contextpath: escapeHtml(item.contextpath || ''),
+            contexthtml: highlightText(item.contextpath || '', query),
             hasactions: actions.length > 0,
             actions: actions
         };
+    }
+
+    /**
+     * Build initials from a result title.
+     *
+     * @param {string} title Display name
+     * @return {string}
+     */
+    function getInitialsFromTitle(title) {
+        var parts = String(title).trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) {
+            return '';
+        }
+        if (parts.length === 1) {
+            return parts[0].substring(0, 2).toUpperCase();
+        }
+        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
     }
 
     /**

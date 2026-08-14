@@ -58,6 +58,11 @@ function local_smartsearch_extend_navigation(\global_navigation $navigation) {
         'search',
         'searchtitle',
         'searchplaceholder',
+        'clearsearch',
+        'shortcut_close',
+        'shortcut_esc',
+        'shortcut_navigate',
+        'shortcut_select',
         'loading',
         'noresults',
         'error_search_generic',
@@ -81,10 +86,32 @@ function local_smartsearch_extend_navigation(\global_navigation $navigation) {
         'showing_results_count',
         'showing_result_count',
     ];
+    $PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081407']));
     $PAGE->requires->strings_for_js($strings, 'local_smartsearch');
 
     // Load JavaScript module (CSS should be loaded in page-specific hooks, not here).
-    $PAGE->requires->js_call_amd('local_smartsearch/search', 'init');
+    $PAGE->requires->js_call_amd('local_smartsearch/search', 'init', [local_smartsearch_get_ui_config()]);
+}
+
+/**
+ * UI config passed to the search AMD module.
+ *
+ * @return array{accentMode: string, accentColor: string}
+ */
+function local_smartsearch_get_ui_config(): array {
+    $mode = get_config('local_smartsearch', 'accent_mode');
+    if (!in_array($mode, ['default', 'theme', 'custom'], true)) {
+        $mode = 'default';
+    }
+    $color = (string) get_config('local_smartsearch', 'accent_color');
+    if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
+        $color = '#1C6CF7';
+    }
+
+    return [
+        'accentMode' => $mode,
+        'accentColor' => $color,
+    ];
 }
 
 /**

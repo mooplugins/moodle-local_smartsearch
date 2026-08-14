@@ -74,5 +74,50 @@ function xmldb_local_smartsearch_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010100, 'local', 'smartsearch');
     }
 
+    if ($oldversion < 2026081400) {
+        $table = new \xmldb_table('local_smartsearch_index');
+        if ($dbman->table_exists($table)) {
+            // Keep one row per recordtype+recordid (lowest id).
+            $duplicates = $DB->get_recordset_sql(
+                "SELECT recordtype, recordid, MIN(id) AS keepid
+                   FROM {local_smartsearch_index}
+               GROUP BY recordtype, recordid
+                 HAVING COUNT(*) > 1"
+            );
+            foreach ($duplicates as $duplicate) {
+                $DB->delete_records_select(
+                    'local_smartsearch_index',
+                    'recordtype = :recordtype AND recordid = :recordid AND id <> :keepid',
+                    [
+                        'recordtype' => $duplicate->recordtype,
+                        'recordid' => $duplicate->recordid,
+                        'keepid' => $duplicate->keepid,
+                    ]
+                );
+            }
+            $duplicates->close();
+
+            $oldindex = new \xmldb_index('idx_recordtype', XMLDB_INDEX_NOTUNIQUE, ['recordtype', 'recordid']);
+            if ($dbman->index_exists($table, $oldindex)) {
+                $dbman->drop_index($table, $oldindex);
+            }
+
+            $uniqueindex = new \xmldb_index('idx_recordtype', XMLDB_INDEX_UNIQUE, ['recordtype', 'recordid']);
+            if (!$dbman->index_exists($table, $uniqueindex)) {
+                $dbman->add_index($table, $uniqueindex);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026081400, 'local', 'smartsearch');
+    }
+
+    if ($oldversion < 2026081402) {
+        upgrade_plugin_savepoint(true, 2026081402, 'local', 'smartsearch');
+    }
+
+    if ($oldversion < 2026081403) {
+        upgrade_plugin_savepoint(true, 2026081403, 'local', 'smartsearch');
+    }
+
     return true;
 }

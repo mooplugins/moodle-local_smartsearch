@@ -242,7 +242,16 @@ class query {
         $results = [];
         $area = self::get_search_area_by_type($recordtype);
 
+        $seenrecordids = [];
         foreach ($records as $record) {
+            $recordid = (int) ($record->recordid ?? 0);
+            if ($recordid > 0) {
+                if (isset($seenrecordids[$recordid])) {
+                    continue;
+                }
+                $seenrecordids[$recordid] = true;
+            }
+
             // Double-check that the record actually matches the search query in title or keywords.
             // This is a safety check in case the SQL query or PHP fallback didn't filter correctly.
             // Use word boundary matching to avoid partial matches (e.g., "cat" matching "category" or "courses").

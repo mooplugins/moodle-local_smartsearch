@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/smartsearch/db" VERSION="20240101" COMMENT="XMLDB file for Moodle local/smartsearch"
+<XMLDB PATH="local/smartsearch/db" VERSION="20260814" COMMENT="XMLDB file for Moodle local/smartsearch"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -22,7 +22,7 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="idx_recordtype" UNIQUE="false" FIELDS="recordtype, recordid"/>
+        <INDEX NAME="idx_recordtype" UNIQUE="true" FIELDS="recordtype, recordid"/>
         <INDEX NAME="idx_updatedat" UNIQUE="false" FIELDS="updatedat"/>
         <!-- Note: FULLTEXT index on (title, subtitle) is created in upgrade.php -->
         <!-- XMLDB doesn't support FULLTEXT indexes well, so it's handled programmatically -->

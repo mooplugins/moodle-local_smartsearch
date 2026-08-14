@@ -44,15 +44,108 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
     var pageSize = 10;
     var overlayLimit = 10;
     var currentPage = 1;
+    var uiConfig = {
+        accentMode: 'default',
+        accentColor: '#1C6CF7'
+    };
+
+    /**
+     * Apply accent CSS variables from admin settings.
+     *
+     * @param {Object} config
+     */
+    function applyAccentConfig(config) {
+        var mode = config.accentMode || 'default';
+        var color = config.accentColor || '#1C6CF7';
+        var roots = [];
+        var pageRoot = document.querySelector('.smartsearch-page');
+        var overlay = document.getElementById('smartsearch-overlay');
+        var bar = document.querySelector('.smartsearch-bar');
+        if (pageRoot) {
+            roots.push(pageRoot);
+        }
+        if (overlay) {
+            roots.push(overlay);
+        }
+        if (bar) {
+            roots.push(bar);
+        }
+
+        roots.forEach(function(root) {
+            if (!root) {
+                return;
+            }
+            root.classList.add('local-smartsearch');
+            root.classList.remove('ss-accent-theme', 'ss-accent-dynamic');
+            if (mode === 'theme') {
+                root.classList.add('ss-accent-theme', 'ss-accent-dynamic');
+                root.style.setProperty('--ss-accent', 'var(--primary, #1c6cf7)');
+            } else if (mode === 'custom') {
+                root.classList.add('ss-accent-dynamic');
+                root.style.setProperty('--ss-accent', color);
+            }
+        });
+    }
+
+    /**
+     * Toggle a clear button based on input value.
+     *
+     * @param {HTMLInputElement} input
+     * @param {HTMLElement|null} button
+     */
+    function syncClearButton(input, button) {
+        if (!button || !input) {
+            return;
+        }
+        if (input.value.length > 0) {
+            button.removeAttribute('hidden');
+        } else {
+            button.setAttribute('hidden', 'hidden');
+        }
+    }
+
+    /**
+     * Bind clear control for a search input.
+     *
+     * @param {HTMLInputElement} input
+     * @param {HTMLElement|null} button
+     * @param {Function} afterClear
+     */
+    function bindClearButton(input, button, afterClear) {
+        if (!input || !button) {
+            return;
+        }
+        syncClearButton(input, button);
+        input.addEventListener('input', function() {
+            syncClearButton(input, button);
+        });
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            input.value = '';
+            syncClearButton(input, button);
+            input.focus();
+            if (typeof afterClear === 'function') {
+                afterClear();
+            }
+        });
+    }
 
     /**
      * Initialize Smart Search.
+     *
+     * @param {Object} [config] UI config from PHP
      */
-    function init() {
+    function init(config) {
         // Prevent multiple initializations.
         if (initialized) {
             return;
         }
+
+        uiConfig = {
+            accentMode: (config && config.accentMode) ? config.accentMode : 'default',
+            accentColor: (config && config.accentColor) ? config.accentColor : '#1C6CF7'
+        };
+        applyAccentConfig(uiConfig);
 
         // Load language strings.
         loadStrings().then(function() {
@@ -63,13 +156,14 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             return addSearchBar();
         }).then(function() {
             // Setup keyboard shortcuts.
-            Keyboard.init(openSearch, closeSearch, navigateResults, selectResult);
+            Keyboard.init(openSearch, closeSearch);
 
             // Setup event listeners.
             setupEventListeners();
 
             // Setup results page UI if applicable.
             initResultsPage();
+            applyAccentConfig(uiConfig);
 
             // Mark as initialized.
             initialized = true;
@@ -87,6 +181,11 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             'search',
             'searchtitle',
             'searchplaceholder',
+            'clearsearch',
+            'shortcut_close',
+            'shortcut_esc',
+            'shortcut_navigate',
+            'shortcut_select',
             'loading',
             'noresults',
             'error_search_generic',
@@ -190,6 +289,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
      */
     function flattenResults(results) {
         var items = [];
+        var seen = {};
         for (var recordtype in results) {
             if (!results.hasOwnProperty(recordtype)) {
                 continue;
@@ -203,6 +303,11 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
                 var item = list[i];
                 var copy = Object.assign({}, item);
                 copy.recordtype = item.recordtype || currentType;
+                var key = copy.recordtype + ':' + (copy.recordid || copy.id || i);
+                if (seen[key]) {
+                    continue;
+                }
+                seen[key] = true;
                 items.push(copy);
             }
         }
@@ -429,6 +534,12 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             });
         }
 
+        bindClearButton(pageInput, document.getElementById('smartsearch-page-clear'), function() {
+            currentPage = 1;
+            updateResultsPageUrl('', currentPage);
+            clearResults();
+        });
+
         pageInput.addEventListener('input', function() {
             var query = this.value.trim();
             if (query.length >= 3) {
@@ -488,6 +599,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             overlayResultsContainer = document.getElementById('smartsearch-results');
             resultsContainer = overlayResultsContainer;
             ensureViewAllContainer();
+            applyAccentConfig(uiConfig);
             return Promise.resolve();
         }
 
@@ -495,7 +607,12 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             searchtitle: strings.searchtitle,
             searchplaceholder: strings.searchplaceholder,
             resultslabel: strings.resultslabel,
-            viewall: strings.view_all_results
+            viewall: strings.view_all_results,
+            clearsearch: strings.clearsearch,
+            shortcut_close: strings.shortcut_close,
+            shortcut_esc: strings.shortcut_esc,
+            shortcut_navigate: strings.shortcut_navigate,
+            shortcut_select: strings.shortcut_select
         };
 
         return Templates.renderForPromise('local_smartsearch/searchoverlay', context).then(function(result) {
@@ -509,6 +626,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             overlayResultsContainer = document.getElementById('smartsearch-results');
             resultsContainer = overlayResultsContainer;
             ensureViewAllContainer();
+            applyAccentConfig(uiConfig);
             return undefined;
         });
     }
@@ -594,6 +712,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
                     openSearch();
                 });
             }
+            applyAccentConfig(uiConfig);
             return;
         });
     }
@@ -616,6 +735,9 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         });
 
         searchInput.addEventListener('keydown', function(e) {
+            if (Keyboard.handleKeys(e)) {
+                return;
+            }
             if (e.key === 'Escape') {
                 closeSearch();
             }
@@ -638,6 +760,19 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
                 if (e.target.classList.contains('smartsearch-overlay')) {
                     closeSearch();
                 }
+            });
+        }
+
+        bindClearButton(searchInput, document.getElementById('smartsearch-clear'), function() {
+            currentQuery = '';
+            clearResults();
+        });
+
+        var escButton = document.getElementById('smartsearch-esc');
+        if (escButton) {
+            escButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeSearch();
             });
         }
     }
@@ -673,13 +808,16 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             args: {
                 query: query,
                 limit: pageMode && !overlayActive ? 100 : 50
+            },
+            fail: function() {
+                // Handled in catch; do not show Moodle's exception modal.
             }
         };
 
         return Ajax.call([request])[0].then(function(response) {
             // Check if response exists.
             if (!response) {
-                showError(strings.error_no_response);
+                showError(strings.error_search_generic);
                 return;
             }
 
@@ -694,7 +832,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
 
             // Check for error first.
             if (response.error !== false && response.error) {
-                showError(response.error || strings.error_search_occurred);
+                showError(strings.error_search_generic);
                 return;
             }
 
@@ -729,7 +867,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
                     return;
                 }
             } catch (e) {
-                showError(strings.error_parse_results.replace('{$a}', e.message));
+                showError(strings.error_search_generic);
                 return;
             }
 
@@ -742,25 +880,10 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             renderResults(results);
             return;
         }).catch(function(error) {
-            var errorMsg = strings.error_search_generic;
-            if (error) {
-                if (typeof error === 'string') {
-                    errorMsg = error;
-                } else if (error.error) {
-                    errorMsg = error.error;
-                } else if (error.message) {
-                    errorMsg = error.message;
-                } else if (error.exception) {
-                    errorMsg = error.exception;
-                } else {
-                    try {
-                        errorMsg = JSON.stringify(error);
-                    } catch (e) {
-                        errorMsg = strings.error_unknown_occurred;
-                    }
-                }
+            if (window.console && error) {
+                window.console.error('Smart Search:', error);
             }
-            showError(errorMsg);
+            showError(strings.error_search_generic);
         });
     }
 
@@ -890,8 +1013,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
     function showError(message) {
         setResultsCount('');
         var context = {
-            errorlabel: strings.error_label,
-            message: message
+            message: message || strings.error_search_generic
         };
 
         return Templates.renderForPromise('local_smartsearch/error', context).then(function(result) {
@@ -956,7 +1078,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         if (overlayResultsContainer) {
             resultsContainer = overlayResultsContainer;
         }
-        searchOverlay.style.display = 'block';
+        searchOverlay.style.display = 'flex';
         searchOverlay.style.opacity = '0';
 
         // Fade in animation.
@@ -1001,21 +1123,6 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             }
         }, 200);
     }
-
-    /**
-     * Navigate results.
-     */
-    function navigateResults() {
-        // Navigation handled by keyboard module.
-    }
-
-    /**
-     * Select result.
-     */
-    function selectResult() {
-        // Selection handled by keyboard module.
-    }
-
 
     return {
         init: init,

@@ -23,6 +23,7 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
+require_once($CFG->dirroot . '/local/smartsearch/lib.php');
 
 $context = \context_system::instance();
 require_login();
@@ -50,6 +51,7 @@ $strings = [
     'search',
     'searchtitle',
     'searchplaceholder',
+    'clearsearch',
     'resultslabel',
     'loading',
     'noresults',
@@ -67,8 +69,9 @@ $strings = [
     'error_unknown_occurred',
     'enrolledincourses',
 ];
+$PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081407']));
 $PAGE->requires->strings_for_js($strings, 'local_smartsearch');
-$PAGE->requires->js_call_amd('local_smartsearch/search', 'init');
+$PAGE->requires->js_call_amd('local_smartsearch/search', 'init', [local_smartsearch_get_ui_config()]);
 
 echo $OUTPUT->header();
 
@@ -88,6 +91,7 @@ $templatecontext = [
     'searchplaceholder' => get_string('searchplaceholder', 'local_smartsearch'),
     'resultslabel' => get_string('resultslabel', 'local_smartsearch'),
     'filterslabel' => get_string('results_filters_label', 'local_smartsearch'),
+    'clearsearch' => get_string('clearsearch', 'local_smartsearch'),
     'paginationlabel' => get_string('pagination_label', 'local_smartsearch'),
     'filters' => $filters,
 ];

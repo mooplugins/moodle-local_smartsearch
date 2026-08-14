@@ -10,10 +10,10 @@
 
     Example context (json):
     {
-        "errorlabel": "Error:",
-        "message": "Search error"
+        "message": "Couldn't complete this search. Refresh the page and try again."
     }
 }}
-<div class="smartsearch-error">
-    <span class="error-label">{{errorlabel}}</span> {{message}}
+<div class="smartsearch-error" role="alert">
+    {{#pix}}i/caution, core{{/pix}}
+    <span>{{message}}</span>
 </div>

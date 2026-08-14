@@ -13,20 +13,52 @@
         "searchtitle": "Search (Ctrl+K)",
         "searchplaceholder": "Search users, courses, activities, settings...",
         "resultslabel": "Search results",
-        "viewall": "View all results"
+        "viewall": "View all results",
+        "clearsearch": "Clear search",
+        "shortcut_close": "Close",
+        "shortcut_esc": "Esc",
+        "shortcut_navigate": "to navigate",
+        "shortcut_select": "to select"
     }
 }}
-<div id="smartsearch-overlay" class="smartsearch-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="{{searchtitle}}">
+<div id="smartsearch-overlay" class="local-smartsearch smartsearch-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="{{searchtitle}}">
     <div class="smartsearch-container">
-        <input type="text"
-               id="smartsearch-input"
-               class="smartsearch-input"
-               placeholder="{{searchplaceholder}}"
-               autocomplete="off"
-               aria-label="{{searchplaceholder}}">
+        <div class="smartsearch-input-wrap">
+            <span class="smartsearch-input-icon" aria-hidden="true">{{#pix}}i/search, core{{/pix}}</span>
+            <input type="text"
+                   id="smartsearch-input"
+                   class="smartsearch-input"
+                   placeholder="{{searchplaceholder}}"
+                   autocomplete="off"
+                   aria-label="{{searchplaceholder}}">
+            <button type="button"
+                    class="smartsearch-clear"
+                    id="smartsearch-clear"
+                    aria-label="{{clearsearch}}"
+                    title="{{clearsearch}}"
+                    hidden>
+                {{#pix}}i/window_close, core{{/pix}}
+            </button>
+            <button type="button"
+                    class="smartsearch-esc"
+                    id="smartsearch-esc"
+                    aria-label="{{shortcut_close}}"
+                    title="{{shortcut_esc}}">{{shortcut_esc}}</button>
+        </div>
         <div id="smartsearch-results" class="smartsearch-results" role="region" aria-live="polite" aria-label="{{resultslabel}}"></div>
         <div class="smartsearch-view-all" id="smartsearch-view-all" style="display: none;">
             <a href="#" class="smartsearch-view-all-link">{{viewall}}</a>
+        </div>
+        <div class="smartsearch-shortcuts" aria-hidden="true">
+            <span class="smartsearch-shortcut">
+                <span class="smartsearch-kbd">{{#pix}}i/up, core{{/pix}}</span>
+                <span class="smartsearch-kbd">{{#pix}}i/down, core{{/pix}}</span>
+                <span>{{shortcut_navigate}}</span>
+            </span>
+            <span class="smartsearch-shortcut">
+                <span class="smartsearch-kbd smartsearch-kbd-enter">&#8629;</span>
+                <span>{{shortcut_select}}</span>
+            </span>
         </div>
     </div>
 </div>
