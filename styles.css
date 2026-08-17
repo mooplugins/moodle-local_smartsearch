@@ -112,6 +112,8 @@ body.smartsearch-open {
     --ss-overlay-esc-width: 2rem;
     --ss-overlay-clear-width: 2rem;
     --ss-overlay-action-gap: 0.375rem;
+    --ss-overlay-right-esc: calc(var(--ss-overlay-pad) + var(--ss-overlay-esc-width) + var(--ss-overlay-action-gap));
+    --ss-overlay-right-clear: calc(var(--ss-overlay-right-esc) + var(--ss-overlay-clear-width));
     position: relative;
     display: block;
     border-bottom: 1px solid var(--ss-border);
@@ -142,7 +144,7 @@ body.smartsearch-open {
 
 .smartsearch-overlay .smartsearch-input {
     width: 100%;
-    padding: 0.75rem calc(var(--ss-overlay-pad) + var(--ss-overlay-esc-width) + var(--ss-overlay-action-gap)) 0.75rem 2.75rem;
+    padding: 0.75rem var(--ss-overlay-right-esc) 0.75rem 2.75rem;
     font-size: 1rem;
     border: 0;
     border-radius: 0;
@@ -151,7 +153,7 @@ body.smartsearch-open {
 }
 
 .smartsearch-overlay .smartsearch-input-wrap:not(:has(.smartsearch-clear[hidden])) .smartsearch-input {
-    padding-right: calc(var(--ss-overlay-pad) + var(--ss-overlay-esc-width) + var(--ss-overlay-action-gap) + var(--ss-overlay-clear-width));
+    padding-right: var(--ss-overlay-right-clear);
 }
 
 .smartsearch-overlay .smartsearch-input:focus {
@@ -161,7 +163,7 @@ body.smartsearch-open {
 
 .smartsearch-overlay .smartsearch-clear {
     position: absolute;
-    right: calc(var(--ss-overlay-pad) + var(--ss-overlay-esc-width) + var(--ss-overlay-action-gap));
+    right: var(--ss-overlay-right-esc);
     top: 50%;
     transform: translateY(-50%);
     z-index: 2;
@@ -526,7 +528,7 @@ button.smartsearch-esc {
     width: 32px;
     height: 32px;
     font-size: 12px;
-    border-radius: 6px !important;
+    border-radius: 6px;
 }
 
 .smartsearch-result-body {
@@ -918,11 +920,11 @@ body.smartsearch-feedback-open #smartsearch-overlay {
     cursor: pointer;
 }
 
-.local-smartsearch .smartsearch-filter .form-check-input,
-.local-smartsearch .smartsearch-filter .smartsearch-filter-input {
+.local-smartsearch.smartsearch-page .smartsearch-filter input.form-check-input,
+.local-smartsearch.smartsearch-page .smartsearch-filter input.smartsearch-filter-input {
     float: none;
     position: static;
-    margin: 0 !important;
+    margin: 0;
     flex: 0 0 auto;
     width: 1rem;
     height: 1rem;
@@ -990,11 +992,11 @@ body.smartsearch-feedback-open #smartsearch-overlay {
         padding-top: 12px;
         padding-bottom: 12px;
         padding-left: 2.75rem;
-        padding-right: calc(var(--ss-overlay-pad) + var(--ss-overlay-esc-width) + var(--ss-overlay-action-gap));
+        padding-right: var(--ss-overlay-right-esc);
     }
 
     .smartsearch-overlay .smartsearch-input-wrap:not(:has(.smartsearch-clear[hidden])) .smartsearch-input {
-        padding-right: calc(var(--ss-overlay-pad) + var(--ss-overlay-esc-width) + var(--ss-overlay-action-gap) + var(--ss-overlay-clear-width));
+        padding-right: var(--ss-overlay-right-clear);
     }
 
     .smartsearch-result-title {

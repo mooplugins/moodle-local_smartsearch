@@ -21,6 +21,10 @@
         "cancel": "Cancel",
         "submit": "Send feedback",
         "required": "*",
+        "successTitle": "Thanks for helping us improve Smart Search.",
+        "successDescription": "We read every submission and use feedback to guide future improvements.",
+        "done": "Close",
+        "error": "Could not send feedback. Please try again.",
         "types": [
             {"value": "improvement", "label": "Suggest an improvement", "selected": true}
         ]
@@ -38,7 +42,7 @@
         <form id="smartsearch-feedback-form" class="smartsearch-feedback-form">
             <div class="smartsearch-feedback-field">
                 <label for="smartsearch-feedback-type">{{typelabel}}</label>
-                <select id="smartsearch-feedback-type" class="form-select" name="feedbacktype" required>
+                <select id="smartsearch-feedback-type" class="form-select" name="feedbacktype">
                     {{#types}}
                     <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
                     {{/types}}
@@ -65,7 +69,7 @@
                 <button type="button" class="btn btn-secondary" id="smartsearch-feedback-cancel">{{cancel}}</button>
                 <button type="submit" class="btn btn-primary" id="smartsearch-feedback-submit">{{submit}}</button>
             </div>
-            <div class="smartsearch-feedback-error" id="smartsearch-feedback-error" role="alert" hidden></div>
+            <div class="smartsearch-feedback-error" id="smartsearch-feedback-error" role="alert" hidden>{{error}}</div>
         </form>
         <div class="smartsearch-feedback-success" id="smartsearch-feedback-success" hidden>
             <h3 class="smartsearch-feedback-title">{{successTitle}}</h3>
