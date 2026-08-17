@@ -110,14 +110,9 @@ class course extends base {
         );
         if ($courseenrollments > 0) {
             if ($subtitle) {
-                $subtitle .= ' | ';
+                $subtitle .= '  •  ';
             }
             $subtitle .= get_string('enrolledusers', 'enrol') . ': ' . $courseenrollments;
-        }
-
-        // Add description if searchable.
-        if (get_config('local_smartsearch', 'search_course_descriptions') && !empty($course->summary)) {
-            $subtitle .= ($subtitle ? ' | ' : '') . strip_tags($course->summary);
         }
 
         $courseurl = new \moodle_url('/course/view.php', ['id' => $itemid]);

@@ -1,0 +1,78 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    @template local_smartsearch/feedback_modal
+
+    Example context (json):
+    {
+        "title": "Help us improve Smart Search",
+        "description": "Your feedback helps us improve search...",
+        "typelabel": "What would you like to share?",
+        "messageLabel": "Tell us more",
+        "messagePlaceholder": "What were you trying to find...",
+        "includeTechLabel": "Include technical details",
+        "includeTechHelp": "Moodle version, Smart Search version, and browser information.",
+        "privacyNote": "When you send feedback...",
+        "cancel": "Cancel",
+        "submit": "Send feedback",
+        "required": "*",
+        "types": [
+            {"value": "improvement", "label": "Suggest an improvement", "selected": true}
+        ]
+    }
+}}
+<div id="smartsearch-feedback-overlay" class="local-smartsearch smartsearch-feedback-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="smartsearch-feedback-title">
+    <div class="smartsearch-feedback-dialog">
+        <div class="smartsearch-feedback-header">
+            <h3 id="smartsearch-feedback-title" class="smartsearch-feedback-title">{{title}}</h3>
+            <button type="button" class="smartsearch-feedback-close" id="smartsearch-feedback-close" aria-label="{{cancel}}">
+                {{#pix}}i/window_close, core{{/pix}}
+            </button>
+        </div>
+        <p class="smartsearch-feedback-desc">{{description}}</p>
+        <form id="smartsearch-feedback-form" class="smartsearch-feedback-form">
+            <div class="smartsearch-feedback-field">
+                <label for="smartsearch-feedback-type">{{typelabel}}</label>
+                <select id="smartsearch-feedback-type" class="form-select" name="feedbacktype" required>
+                    {{#types}}
+                    <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                    {{/types}}
+                </select>
+            </div>
+            <div class="smartsearch-feedback-field">
+                <label for="smartsearch-feedback-message">{{messageLabel}} <span class="smartsearch-feedback-required">{{required}}</span></label>
+                <textarea id="smartsearch-feedback-message"
+                          class="form-control"
+                          name="message"
+                          rows="5"
+                          required
+                          placeholder="{{messagePlaceholder}}"></textarea>
+            </div>
+            <div class="form-check smartsearch-feedback-tech">
+                <input type="checkbox" class="form-check-input" id="smartsearch-feedback-tech" name="includetech" checked>
+                <label class="form-check-label" for="smartsearch-feedback-tech">
+                    <strong>{{includeTechLabel}}</strong>
+                    <span class="smartsearch-feedback-tech-help">{{includeTechHelp}}</span>
+                </label>
+            </div>
+            <div class="smartsearch-feedback-privacy" role="note">{{privacyNote}}</div>
+            <div class="smartsearch-feedback-actions">
+                <button type="button" class="btn btn-secondary" id="smartsearch-feedback-cancel">{{cancel}}</button>
+                <button type="submit" class="btn btn-primary" id="smartsearch-feedback-submit">{{submit}}</button>
+            </div>
+            <div class="smartsearch-feedback-error" id="smartsearch-feedback-error" role="alert" hidden></div>
+        </form>
+        <div class="smartsearch-feedback-success" id="smartsearch-feedback-success" hidden>
+            <h3 class="smartsearch-feedback-title">{{successTitle}}</h3>
+            <p class="smartsearch-feedback-desc">{{successDescription}}</p>
+            <div class="smartsearch-feedback-actions">
+                <button type="button" class="btn btn-primary" id="smartsearch-feedback-done">{{done}}</button>
+            </div>
+        </div>
+    </div>
+</div>

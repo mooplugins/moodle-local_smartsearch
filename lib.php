@@ -81,12 +81,13 @@ function local_smartsearch_extend_navigation(\global_navigation $navigation) {
         'results_categories',
         'enrolledincourses',
         'view_all_results',
+        'feedback_link',
         'pagination_previous',
         'pagination_next',
         'showing_results_count',
         'showing_result_count',
     ];
-    $PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081408']));
+    $PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081749']));
     $PAGE->requires->strings_for_js($strings, 'local_smartsearch');
 
     // Load JavaScript module (CSS should be loaded in page-specific hooks, not here).

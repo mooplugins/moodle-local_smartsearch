@@ -69,7 +69,7 @@ $strings = [
     'error_unknown_occurred',
     'enrolledincourses',
 ];
-$PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081408']));
+$PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081749']));
 $PAGE->requires->strings_for_js($strings, 'local_smartsearch');
 $PAGE->requires->js_call_amd('local_smartsearch/search', 'init', [local_smartsearch_get_ui_config()]);
 
@@ -93,6 +93,7 @@ $templatecontext = [
     'filterslabel' => get_string('results_filters_label', 'local_smartsearch'),
     'clearsearch' => get_string('clearsearch', 'local_smartsearch'),
     'paginationlabel' => get_string('pagination_label', 'local_smartsearch'),
+    'feedback_link' => get_string('feedback_link', 'local_smartsearch'),
     'filters' => $filters,
 ];
 

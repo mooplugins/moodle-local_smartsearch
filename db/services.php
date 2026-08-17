@@ -75,4 +75,14 @@ $functions = [
         'loginrequired' => true,
         'capabilities' => 'local/smartsearch:manage',
     ],
+    'local_smartsearch_submit_feedback' => [
+        'classname' => 'local_smartsearch\external\feedback_external',
+        'methodname' => 'submit_feedback',
+        'classpath' => '',
+        'description' => 'Submit Smart Search product feedback',
+        'type' => 'write',
+        'ajax' => true,
+        'loginrequired' => true,
+        'capabilities' => 'local/smartsearch:search',
+    ],
 ];

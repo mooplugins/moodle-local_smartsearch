@@ -61,33 +61,6 @@ define(['core/templates'], function(Templates) {
     }
 
     /**
-     * Map an action icon to a Moodle pix name.
-     *
-     * @param {string} icon Action icon key
-     * @return {string}
-     */
-    function getActionIcon(icon) {
-        if (icon && icon.indexOf('/') !== -1) {
-            return icon;
-        }
-        var icons = {
-            user: 'i/user',
-            comment: 'i/sendmessage',
-            message: 'i/sendmessage',
-            'right-to-bracket': 'i/switchrole',
-            login: 'i/switchrole',
-            edit: 'i/edit',
-            'graduation-cap': 'i/course',
-            users: 'i/users',
-            'puzzle-piece': 'i/section',
-            'folder-open': 'i/folder',
-            eye: 'i/preview',
-            link: 'i/link'
-        };
-        return icons[icon] || 'i/link';
-    }
-
-    /**
      * Decode HTML entities to plain text.
      *
      * @param {string} str Encoded string
@@ -150,6 +123,29 @@ define(['core/templates'], function(Templates) {
     }
 
     /**
+     * Normalise subtitle separators for display.
+     *
+     * @param {string} subtitle Raw subtitle
+     * @return {string}
+     */
+    function formatSubtitle(subtitle) {
+        if (!subtitle) {
+            return '';
+        }
+        var text = String(subtitle);
+        text = text.replace(/\s*>\s*/g, ' → ');
+        // Keep "Type | In: path", convert other pipes to a spaced bullet.
+        text = text.replace(/\s*\|\s*(?!In:)/g, '  •  ');
+        text = text.replace(/\s*\|\s*/g, ' | ');
+        // Drop empty segments and trim dangling separators.
+        text = text.split(/\s•\s/).map(function(part) {
+            return part.trim();
+        }).filter(Boolean).join('  •  ');
+        text = text.replace(/(\s→\s|\s\|\s|\s•\s)+$/g, '').trim();
+        return text;
+    }
+
+    /**
      * Build template context for a single result item.
      *
      * @param {Object} item Result item
@@ -161,15 +157,10 @@ define(['core/templates'], function(Templates) {
         var subtitle = '';
         if (item.subtitle) {
             subtitle = String(item.subtitle).replace(/\[\[enrolledincourses\]\]/g, enrolledlabel);
+            subtitle = formatSubtitle(subtitle);
+        } else if (item.contextpath) {
+            subtitle = formatSubtitle(String(item.contextpath));
         }
-
-        var actions = (item.actions || []).map(function(action) {
-            return {
-                url: action.url || '#',
-                label: action.label || '',
-                icon: getActionIcon(action.icon)
-            };
-        });
 
         var isuser = item.recordtype === 'user';
         var initials = item.initials || '';
@@ -190,11 +181,7 @@ define(['core/templates'], function(Templates) {
             url: item.url || '#',
             titlehtml: highlightText(item.title || '', query),
             hassubtitle: !!subtitle,
-            subtitlehtml: highlightText(subtitle, query),
-            hascontextpath: !!item.contextpath,
-            contexthtml: highlightText(item.contextpath || '', query),
-            hasactions: actions.length > 0,
-            actions: actions
+            subtitlehtml: highlightText(subtitle, query)
         };
     }
 
@@ -253,6 +240,7 @@ define(['core/templates'], function(Templates) {
                     Promise.all(itemPromises).then(function(itemHtml) {
                         return Templates.renderForPromise('local_smartsearch/result_category', {
                             categorylabel: getCategoryLabel(type),
+                            itemcount: typeItems.length,
                             itemshtml: itemHtml.join('')
                         });
                     }).then(function(result) {

@@ -97,7 +97,7 @@ class category extends base {
         }
         if (!empty($category->description)) {
             if ($subtitle) {
-                $subtitle .= ' | ';
+                $subtitle .= '  •  ';
             }
             $subtitle .= strip_tags($category->description);
         }

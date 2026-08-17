@@ -21,8 +21,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard', 'local_smartsearch/renderer'],
-    function(Templates, Ajax, Str, Keyboard, Renderer) {
+define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard', 'local_smartsearch/renderer',
+    'local_smartsearch/feedback'], function(Templates, Ajax, Str, Keyboard, Renderer, Feedback) {
     var searchOverlay = null;
     var searchInput = null;
     var resultsContainer = null;
@@ -197,6 +197,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             'error_unknown_occurred',
             'resultslabel',
             'view_all_results',
+            'feedback_link',
             'pagination_previous',
             'pagination_next',
             'showing_results_count',
@@ -265,6 +266,24 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         }
         var params = new URLSearchParams(window.location.search);
         return params.get('q') || '';
+    }
+
+    /**
+     * Get the query currently typed in the active search field.
+     *
+     * @return {string}
+     */
+    function getActiveInputQuery() {
+        if (overlayActive && searchInput) {
+            return searchInput.value.trim();
+        }
+        if (pageMode && !overlayActive && pageInput) {
+            return pageInput.value.trim();
+        }
+        if (searchInput) {
+            return searchInput.value.trim();
+        }
+        return currentQuery;
     }
 
     /**
@@ -367,7 +386,12 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         if (!viewAll || !link) {
             return;
         }
-        if (total > overlayLimit && currentQuery.length >= 3) {
+        var inputQuery = getActiveInputQuery();
+        var show = overlayActive &&
+            total > overlayLimit &&
+            currentQuery.length >= 3 &&
+            inputQuery === currentQuery;
+        if (show) {
             link.setAttribute('href', getResultsPageUrl(currentQuery, 1));
             link.textContent = strings.view_all_results;
             viewAll.style.display = 'block';
@@ -585,6 +609,8 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
                 }
             });
         }
+
+        bindFeedbackTrigger();
     }
 
     /**
@@ -599,6 +625,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             overlayResultsContainer = document.getElementById('smartsearch-results');
             resultsContainer = overlayResultsContainer;
             ensureViewAllContainer();
+            bindFeedbackTrigger();
             applyAccentConfig(uiConfig);
             return Promise.resolve();
         }
@@ -611,8 +638,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             clearsearch: strings.clearsearch,
             shortcut_close: strings.shortcut_close,
             shortcut_esc: strings.shortcut_esc,
-            shortcut_navigate: strings.shortcut_navigate,
-            shortcut_select: strings.shortcut_select
+            feedback_link: strings.feedback_link
         };
 
         return Templates.renderForPromise('local_smartsearch/searchoverlay', context).then(function(result) {
@@ -626,20 +652,38 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             overlayResultsContainer = document.getElementById('smartsearch-results');
             resultsContainer = overlayResultsContainer;
             ensureViewAllContainer();
+            bindFeedbackTrigger();
             applyAccentConfig(uiConfig);
             return undefined;
         });
     }
 
     /**
-     * Ensure the View all results container exists in the overlay.
+     * Bind Help us improve feedback buttons.
+     */
+    function bindFeedbackTrigger() {
+        var buttons = document.querySelectorAll('.smartsearch-feedback-link');
+        buttons.forEach(function(button) {
+            if (button.getAttribute('data-listener-attached') === 'true') {
+                return;
+            }
+            button.setAttribute('data-listener-attached', 'true');
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                Feedback.open();
+            });
+        });
+    }
+
+    /**
+     * Ensure the View all results container exists in the overlay footer.
      */
     function ensureViewAllContainer() {
-        if (!overlayResultsContainer) {
+        if (document.getElementById('smartsearch-view-all')) {
             return;
         }
-        var existing = document.getElementById('smartsearch-view-all');
-        if (existing) {
+        var footer = document.querySelector('.smartsearch-footer');
+        if (!footer) {
             return;
         }
         var container = document.createElement('div');
@@ -653,7 +697,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         link.textContent = strings.view_all_results;
 
         container.appendChild(link);
-        overlayResultsContainer.insertAdjacentElement('afterend', container);
+        footer.appendChild(container);
     }
 
     /**
@@ -815,6 +859,11 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         };
 
         return Ajax.call([request])[0].then(function(response) {
+            // Ignore stale responses from an older query or after the input was cleared.
+            if (query !== currentQuery || getActiveInputQuery() !== query) {
+                return;
+            }
+
             // Check if response exists.
             if (!response) {
                 showError(strings.error_search_generic);
@@ -1037,9 +1086,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             resultsContainer.innerHTML = '';
         }
         setResultsCount('');
-        if (overlayActive) {
-            updateViewAllLink(0);
-        }
+        updateViewAllLink(0);
         if (pageMode && !overlayActive) {
             renderPagination(0);
         }
@@ -1075,9 +1122,15 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
 
         isOpen = true;
         overlayActive = true;
+        clearTimeout(searchTimeout);
+        currentQuery = '';
+        if (searchInput) {
+            searchInput.value = '';
+        }
         if (overlayResultsContainer) {
             resultsContainer = overlayResultsContainer;
         }
+        clearResults();
         searchOverlay.style.display = 'flex';
         searchOverlay.style.opacity = '0';
 
@@ -1106,6 +1159,12 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
 
         isOpen = false;
         overlayActive = false;
+        clearTimeout(searchTimeout);
+        currentQuery = '';
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        clearResults();
 
         // Fade out animation.
         searchOverlay.style.transition = 'opacity 200ms';
@@ -1113,10 +1172,6 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
 
         setTimeout(function() {
             searchOverlay.style.display = 'none';
-            if (searchInput) {
-                searchInput.value = '';
-            }
-            clearResults();
             document.body.classList.remove('smartsearch-open');
             if (pageMode && pageResultsContainer) {
                 resultsContainer = pageResultsContainer;

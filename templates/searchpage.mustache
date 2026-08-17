@@ -17,6 +17,7 @@
         "resultslabel": "Search results",
         "filterslabel": "Results from",
         "paginationlabel": "Search result pages",
+        "feedback_link": "Help us improve Smart Search",
         "filters": [
             {"key": "course", "label": "Courses"},
             {"key": "user", "label": "Users"}
@@ -24,39 +25,44 @@
     }
 }}
 <div class="local-smartsearch smartsearch-page">
-    <div id="smartsearch-results-count" class="smartsearch-results-count mb-2" aria-live="polite"></div>
-    <div class="smartsearch-page-header">
-        <form class="smartsearch-page-form" role="search" action="#" method="get">
-            <label class="accesshide" for="smartsearch-page-input">{{searchplaceholder}}</label>
-            <div class="smartsearch-input-wrap">
-                <span class="smartsearch-input-icon" aria-hidden="true">{{#pix}}i/search, core{{/pix}}</span>
-                <input type="text"
-                       id="smartsearch-page-input"
-                       class="smartsearch-input smartsearch-page-input"
-                       name="q"
-                       value="{{query}}"
-                       placeholder="{{searchplaceholder}}"
-                       autocomplete="off"
-                       aria-label="{{searchplaceholder}}">
-                <button type="button"
-                        class="smartsearch-clear"
-                        id="smartsearch-page-clear"
-                        aria-label="{{clearsearch}}"
-                        title="{{clearsearch}}"
-                        hidden>
-                    {{#pix}}i/window_close, core{{/pix}}
-                </button>
+    <div id="smartsearch-results-count" class="smartsearch-results-count text-muted small mb-2" aria-live="polite"></div>
+    <div class="smartsearch-page-header card mb-3">
+        <div class="card-body">
+            <form class="smartsearch-page-form simplesearchform" role="search" action="#" method="get">
+                <label class="accesshide" for="smartsearch-page-input">{{searchplaceholder}}</label>
+                <div class="input-group smartsearch-input-wrap">
+                    <span class="input-group-text bg-transparent text-muted" aria-hidden="true">{{#pix}}i/search, core{{/pix}}</span>
+                    <input type="text"
+                           id="smartsearch-page-input"
+                           class="form-control withclear smartsearch-input smartsearch-page-input"
+                           name="q"
+                           value="{{query}}"
+                           placeholder="{{searchplaceholder}}"
+                           autocomplete="off"
+                           aria-label="{{searchplaceholder}}">
+                    <button type="button"
+                            class="btn btn-clear smartsearch-clear"
+                            id="smartsearch-page-clear"
+                            aria-label="{{clearsearch}}"
+                            title="{{clearsearch}}"
+                            hidden>
+                        {{#pix}}e/cancel, core{{/pix}}
+                        <span class="visually-hidden">{{clearsearch}}</span>
+                    </button>
+                    <button class="btn btn-primary smartsearch-page-submit" type="submit">{{search}}</button>
+                </div>
+            </form>
+            <div class="smartsearch-page-filters mt-3" role="group" aria-label="{{filterslabel}}">
+                <span class="smartsearch-filters-label small text-muted text-uppercase fw-semibold">{{filterslabel}}</span>
+                <div class="smartsearch-filter-list">
+                    {{#filters}}
+                    <label class="smartsearch-filter">
+                        <input type="checkbox" class="form-check-input smartsearch-filter-input" data-recordtype="{{key}}" checked>
+                        <span class="smartsearch-filter-label">{{label}}</span>
+                    </label>
+                    {{/filters}}
+                </div>
             </div>
-            <button class="btn btn-primary smartsearch-page-submit" type="submit">{{search}}</button>
-        </form>
-        <div class="smartsearch-page-filters" role="group" aria-label="{{filterslabel}}">
-            <span class="smartsearch-filters-label">{{filterslabel}}</span>
-            {{#filters}}
-            <label class="smartsearch-filter">
-                <input type="checkbox" class="smartsearch-filter-input" data-recordtype="{{key}}" checked>
-                <span>{{label}}</span>
-            </label>
-            {{/filters}}
         </div>
     </div>
     <div id="smartsearch-page-results"
@@ -65,4 +71,7 @@
          aria-live="polite"
          aria-label="{{resultslabel}}"></div>
     <div class="smartsearch-pagination" id="smartsearch-pagination" aria-label="{{paginationlabel}}"></div>
+    <div class="smartsearch-page-footer">
+        <button type="button" class="btn btn-link btn-sm text-muted p-0 smartsearch-feedback-link" id="smartsearch-page-feedback-open">{{feedback_link}}</button>
+    </div>
 </div>

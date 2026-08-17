@@ -146,7 +146,7 @@ class search_external extends \external_api {
                 if ($url instanceof \moodle_url) {
                     $url = $url->out(false);
                 }
-                if (empty($url)) {
+                if (empty($url) || $url === '/course/view.php') {
                     $url = '#';
                 }
 

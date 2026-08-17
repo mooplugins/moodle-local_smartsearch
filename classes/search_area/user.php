@@ -162,7 +162,7 @@ class user extends base {
         }
         if ($enrolcount > 0) {
             if ($subtitle) {
-                $subtitle .= ' | ';
+                $subtitle .= '  •  ';
             }
             // Use the translated string directly - it should be stored as-is in the database.
             $enrolledstr = get_string('enrolledincourses', 'local_smartsearch');

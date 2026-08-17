@@ -10,12 +10,16 @@
     Example context (json):
     {
         "categorylabel": "Courses",
+        "itemcount": 3,
         "itemshtml": "<div class=\"smartsearch-result-item\">...</div>"
     }
 }}
 <div class="smartsearch-category">
-    <div class="smartsearch-category-header">{{categorylabel}}</div>
-    <div class="smartsearch-category-items">
+    <div class="smartsearch-category-header px-3 pt-3 pb-1">
+        <span class="small text-muted text-uppercase fw-semibold">{{categorylabel}}</span>
+        <span class="badge rounded-pill text-bg-light text-muted fw-normal ms-1">{{itemcount}}</span>
+    </div>
+    <div class="list-group list-group-flush smartsearch-category-items">
         {{{itemshtml}}}
     </div>
 </div>

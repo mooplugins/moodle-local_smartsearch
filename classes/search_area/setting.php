@@ -234,12 +234,18 @@ class setting extends base {
             return null;
         }
 
+        $description = isset($setting->description) ? trim(strip_tags($setting->description)) : '';
+        $subtitle = $pathstring;
+        if ($description !== '') {
+            $subtitle .= '  •  ' . $description;
+        }
+
         return [
             'recordtype' => 'setting',
             'recordid' => $uniqueid, // Use hash as unique identifier.
             'contextpath' => $pathstring,
             'title' => $visiblename,
-            'subtitle' => $pathstring . (isset($setting->description) ? ' | ' . strip_tags($setting->description) : ''),
+            'subtitle' => $subtitle,
             'keywords' => $keywords,
             'url' => $url,
             'metadata' => [

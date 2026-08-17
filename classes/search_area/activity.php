@@ -161,22 +161,20 @@ class activity extends base {
             $keywords = [$cminfo->modname, $cminfo->name];
 
             // Get URL, fallback to course view if activity URL is not available.
-            $url = '/course/view.php';
             if (isset($cminfo->url) && $cminfo->url !== null) {
                 $url = $cminfo->url->out(false);
             } else {
-                // Fallback: create URL to course.
-                $courseurl = new \moodle_url('/course/view.php', ['id' => $cm->course]);
-                $url = $courseurl->out(false);
+                $url = (new \moodle_url('/course/view.php', ['id' => $cm->course]))->out(false);
             }
 
+            $pathdisplay = str_replace(' > ', ' → ', $contextpath);
             return [
                 'recordtype' => 'activity',
                 'recordid' => $itemid,
                 'contextpath' => $contextpath,
                 'title' => $cminfo->name,
                 'subtitle' => get_string('modulename', $cminfo->modname) . ' | '
-                    . get_string('in', 'local_smartsearch') . ': ' . $contextpath,
+                    . get_string('in', 'local_smartsearch') . ': ' . $pathdisplay,
                 'keywords' => $keywords,
                 'url' => $url,
                 'metadata' => [
@@ -222,20 +220,20 @@ class activity extends base {
             }
 
             $keywords = [$cminfo->modname, $cminfo->name];
-            $url = '/course/view.php';
             if (isset($cminfo->url) && $cminfo->url !== null) {
                 $url = $cminfo->url->out(false);
             } else {
                 $url = (new \moodle_url('/course/view.php', ['id' => $courseid]))->out(false);
             }
 
+            $pathdisplay = str_replace(' > ', ' → ', $contextpath);
             return [
                 'recordtype' => 'activity',
                 'recordid' => $itemid,
                 'contextpath' => $contextpath,
                 'title' => $cminfo->name,
                 'subtitle' => get_string('modulename', $cminfo->modname) . ' | '
-                    . get_string('in', 'local_smartsearch') . ': ' . $contextpath,
+                    . get_string('in', 'local_smartsearch') . ': ' . $pathdisplay,
                 'keywords' => $keywords,
                 'url' => $url,
                 'metadata' => [
