@@ -445,17 +445,28 @@ button.smartsearch-esc {
     margin-bottom: 0.5rem;
 }
 
+.local-smartsearch .smartsearch-result-item,
+.local-smartsearch .smartsearch-result-item.list-group-item-action,
+.local-smartsearch .smartsearch-result-icon,
+.local-smartsearch .smartsearch-result-avatar .userinitials {
+    transition: none;
+}
+
 .local-smartsearch .smartsearch-result-item {
     margin-bottom: 2px;
     color: var(--ss-text);
-    transition: background-color 0.15s ease;
     min-width: 0;
+    height: auto;
     overflow: hidden;
+    white-space: normal;
 }
 
 .local-smartsearch .smartsearch-result-item:hover,
-.local-smartsearch .smartsearch-result-item:focus-within {
+.local-smartsearch .smartsearch-result-item:focus-within,
+.local-smartsearch .list-group-item-action.smartsearch-result-item:hover,
+.local-smartsearch .list-group-item-action.smartsearch-result-item:focus {
     background-color: var(--ss-surface-hover);
+    color: var(--ss-text);
 }
 
 .local-smartsearch .smartsearch-result-item.selected,
@@ -485,7 +496,7 @@ button.smartsearch-esc {
     width: 100%;
 }
 
-.local-smartsearch .smartsearch-result-icon:not(.smartsearch-result-avatar) {
+.local-smartsearch .smartsearch-result-icon {
     flex: 0 0 auto;
     width: 32px;
     height: 32px;
@@ -499,9 +510,9 @@ button.smartsearch-esc {
     margin: 0;
 }
 
-.local-smartsearch .smartsearch-result-item:hover .smartsearch-result-icon:not(.smartsearch-result-avatar),
-.local-smartsearch .smartsearch-result-item.selected .smartsearch-result-icon:not(.smartsearch-result-avatar) {
-    background: var(--ss-surface);
+.local-smartsearch .smartsearch-result-item.selected .smartsearch-result-icon,
+.local-smartsearch .smartsearch-result-item[aria-selected="true"] .smartsearch-result-icon {
+    background: var(--ss-accent-soft);
 }
 
 .local-smartsearch .smartsearch-result-icon:not(.smartsearch-result-avatar) .icon {
@@ -513,22 +524,34 @@ button.smartsearch-esc {
     color: var(--ss-text-muted);
 }
 
-.smartsearch-result-avatar {
-    width: 32px;
-    height: 32px;
-    background: var(--ss-surface-hover);
-    border-radius: 6px;
+.local-smartsearch .smartsearch-result-avatar {
     overflow: hidden;
     color: inherit;
 }
 
 .local-smartsearch .smartsearch-result-avatar .userinitials,
+.local-smartsearch .smartsearch-result-avatar .userinitials.size-35,
 .local-smartsearch .smartsearch-result-avatar img.userpicture {
     margin: 0;
     width: 32px;
     height: 32px;
     font-size: 12px;
     border-radius: 6px;
+}
+
+.local-smartsearch .smartsearch-result-avatar .userinitials,
+.local-smartsearch .smartsearch-result-avatar .userinitials.size-35 {
+    background: var(--ss-surface-hover);
+    background-color: var(--ss-surface-hover);
+    color: var(--ss-text-muted);
+}
+
+.local-smartsearch .smartsearch-result-item.selected .smartsearch-result-avatar .userinitials,
+.local-smartsearch .smartsearch-result-item.selected .smartsearch-result-avatar .userinitials.size-35,
+.local-smartsearch .smartsearch-result-item[aria-selected="true"] .smartsearch-result-avatar .userinitials,
+.local-smartsearch .smartsearch-result-item[aria-selected="true"] .smartsearch-result-avatar .userinitials.size-35 {
+    background: var(--ss-accent-soft);
+    background-color: var(--ss-accent-soft);
 }
 
 .smartsearch-result-body {
@@ -610,6 +633,10 @@ body.smartsearch-feedback-open #smartsearch-overlay {
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
+}
+
+.smartsearch-feedback-header:has(#smartsearch-feedback-title[hidden]) {
+    justify-content: flex-end;
 }
 
 .smartsearch-feedback-title {

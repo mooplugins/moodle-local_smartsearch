@@ -191,7 +191,7 @@ class search_external extends \external_api {
     }
 
     /**
-     * Add Moodle user pictures or initials to user results.
+     * Add user pictures, initials, roles, and enrolment counts to user results.
      *
      * @param array $formatted Grouped search results
      * @return array
@@ -212,10 +212,42 @@ class search_external extends \external_api {
         }
 
         $users = [];
+        $rolesbyuser = [];
+        $enrolbyuser = [];
         if (!empty($userids)) {
             $fields = 'id, picture, imagealt, firstname, lastname, firstnamephonetic, lastnamephonetic, ' .
                 'middlename, alternatename, email';
             $users = $DB->get_records_list('user', 'id', $userids, '', $fields);
+            [$insql, $inparams] = $DB->get_in_or_equal($userids);
+            $rolerows = $DB->get_records_sql(
+                "SELECT ra.id, ra.userid, r.shortname
+                   FROM {role_assignments} ra
+                   JOIN {role} r ON r.id = ra.roleid
+                  WHERE ra.userid $insql",
+                $inparams
+            );
+            foreach ($rolerows as $rolerow) {
+                $roleuserid = (int) $rolerow->userid;
+                if (!isset($rolesbyuser[$roleuserid])) {
+                    $rolesbyuser[$roleuserid] = [];
+                }
+                if (!in_array($rolerow->shortname, $rolesbyuser[$roleuserid], true)) {
+                    $rolesbyuser[$roleuserid][] = $rolerow->shortname;
+                }
+            }
+            $counts = $DB->get_records_sql(
+                "SELECT ue.userid, COUNT(DISTINCT e.courseid) AS enrolcount
+                   FROM {user_enrolments} ue
+                   JOIN {enrol} e ON e.id = ue.enrolid
+                  WHERE ue.userid $insql
+                    AND e.status = 0
+                    AND ue.status = 0
+               GROUP BY ue.userid",
+                $inparams
+            );
+            foreach ($counts as $count) {
+                $enrolbyuser[(int) $count->userid] = (int) $count->enrolcount;
+            }
         }
 
         foreach ($formatted['user'] as $index => $item) {
@@ -241,6 +273,19 @@ class search_external extends \external_api {
             $formatted['user'][$index]['initials'] = $initials;
             $formatted['user'][$index]['pictureurl'] = $pictureurl;
             $formatted['user'][$index]['haspicture'] = $haspicture;
+
+            $subtitleparts = [];
+            $roles = $rolesbyuser[$userid] ?? [];
+            if (empty($roles) && is_siteadmin($userid)) {
+                $roles[] = get_string('administrator');
+            }
+            if (empty($roles)) {
+                $roles[] = get_string('none');
+            }
+            $subtitleparts[] = get_string('roles', 'local_smartsearch') . ': ' . implode(', ', $roles);
+            $enrolcount = $enrolbyuser[$userid] ?? 0;
+            $subtitleparts[] = get_string('enrolledincourses', 'local_smartsearch') . ': ' . $enrolcount;
+            $formatted['user'][$index]['subtitle'] = implode('  •  ', $subtitleparts);
         }
 
         return $formatted;

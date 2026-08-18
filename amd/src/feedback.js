@@ -128,22 +128,49 @@ define(['core/templates', 'core/ajax', 'core/str'], function(Templates, Ajax, St
     }
 
     /**
+     * Show the form or the success confirmation.
+     *
+     * @param {string} view 'form' or 'success'
+     */
+    function setView(view) {
+        var isSuccess = view === 'success';
+        var title = document.getElementById('smartsearch-feedback-title');
+        var intro = document.getElementById('smartsearch-feedback-intro-desc');
+        var form = document.getElementById('smartsearch-feedback-form');
+        var success = document.getElementById('smartsearch-feedback-success');
+        var successTitle = document.getElementById('smartsearch-feedback-success-title');
+        if (title) {
+            title.hidden = isSuccess;
+        }
+        if (intro) {
+            intro.hidden = isSuccess;
+        }
+        if (form) {
+            form.hidden = isSuccess;
+        }
+        if (success) {
+            success.hidden = !isSuccess;
+        }
+        if (overlay) {
+            overlay.setAttribute('aria-labelledby', isSuccess && successTitle
+                ? 'smartsearch-feedback-success-title'
+                : 'smartsearch-feedback-title');
+        }
+    }
+
+    /**
      * Reset form to the entry state.
      */
     function resetForm() {
         var form = document.getElementById('smartsearch-feedback-form');
-        var success = document.getElementById('smartsearch-feedback-success');
         var error = document.getElementById('smartsearch-feedback-error');
+        setView('form');
         if (form) {
-            form.hidden = false;
             form.reset();
             var tech = document.getElementById('smartsearch-feedback-tech');
             if (tech) {
                 tech.checked = true;
             }
-        }
-        if (success) {
-            success.hidden = true;
         }
         if (error) {
             error.hidden = true;
@@ -202,8 +229,6 @@ define(['core/templates', 'core/ajax', 'core/str'], function(Templates, Ajax, St
         var techEl = document.getElementById('smartsearch-feedback-tech');
         var submitBtn = document.getElementById('smartsearch-feedback-submit');
         var error = document.getElementById('smartsearch-feedback-error');
-        var form = document.getElementById('smartsearch-feedback-form');
-        var success = document.getElementById('smartsearch-feedback-success');
 
         var message = messageEl ? messageEl.value.trim() : '';
         if (!message) {
@@ -233,12 +258,7 @@ define(['core/templates', 'core/ajax', 'core/str'], function(Templates, Ajax, St
         };
 
         Ajax.call([request])[0].then(function() {
-            if (form) {
-                form.hidden = true;
-            }
-            if (success) {
-                success.hidden = false;
-            }
+            setView('success');
             return undefined;
         }).catch(function() {
             if (error) {

@@ -38,7 +38,7 @@
                 {{#pix}}i/window_close, core{{/pix}}
             </button>
         </div>
-        <p class="smartsearch-feedback-desc">{{description}}</p>
+        <p id="smartsearch-feedback-intro-desc" class="smartsearch-feedback-desc">{{description}}</p>
         <form id="smartsearch-feedback-form" class="smartsearch-feedback-form">
             <div class="smartsearch-feedback-field">
                 <label for="smartsearch-feedback-type">{{typelabel}}</label>
@@ -72,7 +72,7 @@
             <div class="smartsearch-feedback-error" id="smartsearch-feedback-error" role="alert" hidden>{{error}}</div>
         </form>
         <div class="smartsearch-feedback-success" id="smartsearch-feedback-success" hidden>
-            <h3 class="smartsearch-feedback-title">{{successTitle}}</h3>
+            <h3 id="smartsearch-feedback-success-title" class="smartsearch-feedback-title">{{successTitle}}</h3>
             <p class="smartsearch-feedback-desc">{{successDescription}}</p>
             <div class="smartsearch-feedback-actions">
                 <button type="button" class="btn btn-primary" id="smartsearch-feedback-done">{{done}}</button>

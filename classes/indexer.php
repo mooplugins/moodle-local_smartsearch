@@ -82,6 +82,7 @@ class indexer {
             if ($area instanceof \local_smartsearch\search_area\setting) {
                 try {
                     $settings = $area->index_all_settings();
+                    $existingindex = self::load_existing_index_map($area->get_record_type());
                     foreach ($settings as $settingdata) {
                         $stats['total']++;
                         try {
@@ -92,7 +93,7 @@ class indexer {
                             );
                             if ($itemdata) {
                                 try {
-                                    $added = self::add_to_index($itemdata);
+                                    $added = self::add_to_index($itemdata, $existingindex);
                                     if ($added) {
                                         $stats['indexed']++;
                                     } else {
@@ -144,13 +145,14 @@ class indexer {
             if ($area instanceof \local_smartsearch\search_area\plugin) {
                 try {
                     $pages = $area->index_all_plugin_pages();
+                    $existingindex = self::load_existing_index_map($area->get_record_type());
                     foreach ($pages as $pagedata) {
                         $stats['total']++;
                         try {
                             $itemdata = $area->index_plugin_page($pagedata['node'], $pagedata['path']);
                             if ($itemdata) {
                                 try {
-                                    $added = self::add_to_index($itemdata);
+                                    $added = self::add_to_index($itemdata, $existingindex);
                                     if ($added) {
                                         $stats['indexed']++;
                                     } else {
@@ -211,16 +213,7 @@ class indexer {
                 \local_smartsearch\search_area\activity::reset_bulk_index_cache();
             }
 
-            $existingindex = [];
-            $existingrecords = $DB->get_records(
-                'local_smartsearch_index',
-                ['recordtype' => $area->get_record_type()],
-                '',
-                'recordid, id'
-            );
-            foreach ($existingrecords as $existingrecord) {
-                $existingindex[(int) $existingrecord->recordid] = (int) $existingrecord->id;
-            }
+            $existingindex = self::load_existing_index_map($area->get_record_type());
 
             foreach ($recordset as $record) {
                 $stats['total']++;
@@ -571,11 +564,10 @@ class indexer {
         int $limit,
         array $stats
     ): array {
-        global $DB;
-
         if ($area instanceof \local_smartsearch\search_area\setting) {
             $items = array_values($area->index_all_settings());
             $slice = array_slice($items, $cursor, $limit);
+            $existingindex = self::load_existing_index_map($area->get_record_type());
             $processed = 0;
             foreach ($slice as $settingdata) {
                 $stats['total']++;
@@ -587,7 +579,7 @@ class indexer {
                         $settingdata['page'] ?? null
                     );
                     if ($itemdata) {
-                        if (self::add_to_index($itemdata)) {
+                        if (self::add_to_index($itemdata, $existingindex)) {
                             $stats['indexed']++;
                         } else {
                             $stats['errors']++;
@@ -597,6 +589,11 @@ class indexer {
                     }
                 } catch (\Throwable $e) {
                     $stats['errors']++;
+                    $stats['error_details'][] = [
+                        'type' => 'setting',
+                        'item' => $settingdata['setting']->name ?? 'unknown',
+                        'error' => $e->getMessage(),
+                    ];
                     debugging('Smart Search chunk setting error: ' . $e->getMessage(), DEBUG_NORMAL);
                 }
             }
@@ -612,6 +609,7 @@ class indexer {
         if ($area instanceof \local_smartsearch\search_area\plugin) {
             $items = array_values($area->index_all_plugin_pages());
             $slice = array_slice($items, $cursor, $limit);
+            $existingindex = self::load_existing_index_map($area->get_record_type());
             $processed = 0;
             foreach ($slice as $pagedata) {
                 $stats['total']++;
@@ -619,7 +617,7 @@ class indexer {
                 try {
                     $itemdata = $area->index_plugin_page($pagedata['node'], $pagedata['path']);
                     if ($itemdata) {
-                        if (self::add_to_index($itemdata)) {
+                        if (self::add_to_index($itemdata, $existingindex)) {
                             $stats['indexed']++;
                         } else {
                             $stats['errors']++;
@@ -629,6 +627,11 @@ class indexer {
                     }
                 } catch (\Throwable $e) {
                     $stats['errors']++;
+                    $stats['error_details'][] = [
+                        'type' => 'plugin',
+                        'item' => $pagedata['node']->name ?? 'unknown',
+                        'error' => $e->getMessage(),
+                    ];
                     debugging('Smart Search chunk plugin error: ' . $e->getMessage(), DEBUG_NORMAL);
                 }
             }
@@ -648,16 +651,7 @@ class indexer {
             \local_smartsearch\search_area\activity::reset_bulk_index_cache();
         }
 
-        $existingindex = [];
-        $existingrecords = $DB->get_records(
-            'local_smartsearch_index',
-            ['recordtype' => $area->get_record_type()],
-            '',
-            'recordid, id'
-        );
-        foreach ($existingrecords as $existingrecord) {
-            $existingindex[(int) $existingrecord->recordid] = (int) $existingrecord->id;
-        }
+        $existingindex = self::load_existing_index_map($area->get_record_type());
 
         $recordset = $area->get_recordset(0, $cursor, $limit);
         $processed = 0;
@@ -806,6 +800,29 @@ class indexer {
     }
 
     /**
+     * Load recordid => index row id map for one search area.
+     *
+     * @param string $recordtype Record type
+     * @return array<int, int>
+     */
+    protected static function load_existing_index_map(string $recordtype): array {
+        global $DB;
+
+        $existingindex = [];
+        $existingrecords = $DB->get_records(
+            'local_smartsearch_index',
+            ['recordtype' => $recordtype],
+            '',
+            'recordid, id'
+        );
+        foreach ($existingrecords as $existingrecord) {
+            $existingindex[(int) $existingrecord->recordid] = (int) $existingrecord->id;
+        }
+
+        return $existingindex;
+    }
+
+    /**
      * Add or update an item in the index.
      *
      * @param array $itemdata Array with keys: recordtype, recordid, title, subtitle, keywords, url, metadata
@@ -930,9 +947,20 @@ class indexer {
             $existingindex[$recordid] = (int) $newid;
             return true;
         } catch (\dml_exception $e) {
-            $errormsg = 'Smart Search: Error adding to index: ' . $e->getMessage();
-            debugging($errormsg, DEBUG_NORMAL);
-            throw $e;
+            // Unique (recordtype, recordid) from a previous index run: update instead.
+            if (isset($record) && isset($record->recordtype) && isset($record->recordid)) {
+                $existing = $DB->get_record('local_smartsearch_index', [
+                    'recordtype' => $record->recordtype,
+                    'recordid' => (int) $record->recordid,
+                ]);
+                if ($existing) {
+                    $record->id = $existing->id;
+                    $existingindex[(int) $record->recordid] = (int) $existing->id;
+                    return (bool) $DB->update_record('local_smartsearch_index', $record);
+                }
+            }
+            debugging('Smart Search: Error adding to index: ' . $e->getMessage(), DEBUG_NORMAL);
+            return false;
         } catch (\Exception $e) {
             debugging('Smart Search: Unexpected error adding to index: ' . $e->getMessage(), DEBUG_NORMAL);
             return false;

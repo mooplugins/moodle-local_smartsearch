@@ -107,7 +107,20 @@ class feedback_external extends \external_api {
         include($CFG->dirroot . '/local/smartsearch/version.php');
         $smartsearchversion = $plugin->release ?? (string) ($plugin->version ?? '');
 
-        $lines = [
+        $fullname = fullname($USER);
+        $sitename = format_string($SITE->fullname);
+        $browser = '';
+        if (!empty($params['includetech'])) {
+            $browser = trim($params['browser']);
+            if ($browser === '' && !empty($_SERVER['HTTP_USER_AGENT'])) {
+                $browser = clean_param($_SERVER['HTTP_USER_AGENT'], PARAM_TEXT);
+            }
+            if ($browser === '') {
+                $browser = 'Unknown';
+            }
+        }
+
+        $textlines = [
             'Feedback type: ' . $typelabel,
             'Plugin: MooPlugins Smart Search',
             '',
@@ -117,32 +130,48 @@ class feedback_external extends \external_api {
             '',
             'Submitted by',
             '',
-            'Name: ' . fullname($USER),
+            'Name: ' . $fullname,
             'Email: ' . $USER->email,
             'Role: ' . $rolelabel,
             '',
             'Moodle site',
             '',
-            'Site name: ' . format_string($SITE->fullname),
+            'Site name: ' . $sitename,
             'Site URL: ' . $CFG->wwwroot,
+        ];
+        $htmlparts = [
+            '<p><strong>Feedback type:</strong> ' . s($typelabel) . '<br>',
+            '<strong>Plugin:</strong> MooPlugins Smart Search</p>',
+            '<p><strong>Feedback</strong></p>',
+            '<p>' . nl2br(s($message), false) . '</p>',
+            '<p><strong>Submitted by</strong></p>',
+            '<p>Name: ' . s($fullname) . '<br>',
+            'Email: ' . s($USER->email) . '<br>',
+            'Role: ' . s($rolelabel) . '</p>',
+            '<p><strong>Moodle site</strong></p>',
+            '<p>Site name: ' . s($sitename) . '<br>',
+            'Site URL: ' . s($CFG->wwwroot) . '</p>',
         ];
 
         if (!empty($params['includetech'])) {
-            $browser = trim($params['browser']);
-            if ($browser === '' && !empty($_SERVER['HTTP_USER_AGENT'])) {
-                $browser = clean_param($_SERVER['HTTP_USER_AGENT'], PARAM_TEXT);
-            }
-            $lines = array_merge($lines, [
+            $textlines = array_merge($textlines, [
                 '',
                 'Technical details',
                 '',
                 'Moodle version: ' . $CFG->release,
                 'Smart Search version: ' . $smartsearchversion,
-                'Browser: ' . ($browser !== '' ? $browser : 'Unknown'),
+                'Browser: ' . $browser,
+            ]);
+            $htmlparts = array_merge($htmlparts, [
+                '<p><strong>Technical details</strong></p>',
+                '<p>Moodle version: ' . s($CFG->release) . '<br>',
+                'Smart Search version: ' . s($smartsearchversion) . '<br>',
+                'Browser: ' . s($browser) . '</p>',
             ]);
         }
 
-        $body = implode("\n", $lines);
+        $body = implode("\n", $textlines);
+        $bodyhtml = implode("\n", $htmlparts);
         $subject = get_string('feedback_email_subject', 'local_smartsearch', $typelabel);
 
         $recipient = \core_user::get_noreply_user();
@@ -153,7 +182,7 @@ class feedback_external extends \external_api {
         $recipient->maildisplay = true;
         $recipient->mailformat = 1;
 
-        $sent = email_to_user($recipient, $USER, $subject, $body, text_to_html($body, false, false, true));
+        $sent = email_to_user($recipient, $USER, $subject, $body, $bodyhtml);
         if (!$sent) {
             throw new \moodle_exception('feedback_send_failed', 'local_smartsearch');
         }

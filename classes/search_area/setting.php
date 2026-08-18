@@ -158,9 +158,9 @@ class setting extends base {
      * @param object $setting The setting object
      * @param array $path The path to the setting
      * @param object|null $page The admin_settingpage object (optional, will use $setting->page if available)
-     * @return array
+     * @return array|null
      */
-    public function index_setting($setting, array $path, $page = null): array {
+    public function index_setting($setting, array $path, $page = null): ?array {
         $pathstring = implode(' › ', $path);
         $name = $setting->name ?? '';
 
