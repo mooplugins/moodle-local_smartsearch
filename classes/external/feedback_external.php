@@ -34,7 +34,7 @@ require_once($CFG->libdir . '/filelib.php');
  */
 class feedback_external extends \external_api {
     /** Feedback destination email. */
-    private const FEEDBACK_EMAIL = 'support@scholarlms.com';
+    private const FEEDBACK_EMAIL = 'support@mooplugins.com';
 
     /**
      * Parameters for submit_feedback.
