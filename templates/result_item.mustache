@@ -12,12 +12,11 @@
         "id": "1",
         "recordid": "42",
         "recordtype": "course",
-        "icon": "i/course",
+        "icon": "course",
+        "iconfa": "fa-solid fa-book",
         "typelabel": "Courses",
-        "isuser": false,
         "haspicture": false,
         "pictureurl": "",
-        "initials": "",
         "url": "/course/view.php?id=2",
         "titlehtml": "Example <mark>course</mark>",
         "hassubtitle": true,
@@ -29,18 +28,14 @@
      data-recordid="{{recordid}}"
      data-recordtype="{{recordtype}}">
     <a href="{{url}}" class="smartsearch-result-link">
-        <span class="smartsearch-result-icon{{#isuser}} smartsearch-result-avatar{{/isuser}}" title="{{typelabel}}" aria-hidden="true">
-            {{#isuser}}
-                {{#haspicture}}
-                    <img class="userpicture" src="{{pictureurl}}" alt="" width="32" height="32">
-                {{/haspicture}}
-                {{^haspicture}}
-                    <span class="userinitials size-35">{{initials}}</span>
-                {{/haspicture}}
-            {{/isuser}}
-            {{^isuser}}
-                {{#pix}}{{icon}}, core, {{typelabel}}{{/pix}}
-            {{/isuser}}
+        <span class="smartsearch-result-icon{{#haspicture}} smartsearch-result-avatar{{/haspicture}}" title="{{typelabel}}" aria-hidden="true">
+            {{#haspicture}}
+                <img class="userpicture" src="{{pictureurl}}" alt="" width="32" height="32">
+            {{/haspicture}}
+            {{^haspicture}}
+                {{#pix}}{{icon}}, local_smartsearch, {{typelabel}}{{/pix}}
+                <i class="icon {{iconfa}} smartsearch-type-fa" aria-hidden="true"></i>
+            {{/haspicture}}
         </span>
         <span class="smartsearch-result-body">
             <span class="smartsearch-result-title fw-semibold">{{{titlehtml}}}</span>

@@ -994,6 +994,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         void Promise.resolve(html).then(function(renderedHtml) {
             if (resultsContainer) {
                 resultsContainer.innerHTML = renderedHtml;
+                Renderer.bindTypeIconFallbacks(resultsContainer);
                 document.dispatchEvent(new CustomEvent('smartsearch:resultsUpdated'));
             } else {
                 showError(strings.error_results_container);

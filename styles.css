@@ -524,6 +524,20 @@ button.smartsearch-esc {
     color: var(--ss-text-muted);
 }
 
+.local-smartsearch .smartsearch-result-icon .smartsearch-type-fa {
+    display: none;
+}
+
+.local-smartsearch .smartsearch-result-icon.is-using-fallback img.icon {
+    display: none;
+}
+
+.local-smartsearch .smartsearch-result-icon.is-using-fallback .smartsearch-type-fa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .local-smartsearch .smartsearch-result-avatar {
     overflow: hidden;
     color: inherit;

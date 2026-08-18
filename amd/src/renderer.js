@@ -43,21 +43,39 @@ define(['core/templates'], function(Templates) {
     }
 
     /**
-     * Get Moodle pix icon name for a record type.
+     * Get plugin pix icon name for a record type.
      *
      * @param {string} recordtype Record type key
      * @return {string}
      */
     function getTypeIcon(recordtype) {
         var icons = {
-            user: 'i/user',
-            course: 'i/course',
-            activity: 'i/section',
-            setting: 'i/settings',
-            plugin: 'i/mnethost',
-            category: 'i/folder'
+            user: 'user',
+            course: 'course',
+            activity: 'activity',
+            setting: 'setting',
+            plugin: 'plugin',
+            category: 'category'
         };
-        return icons[recordtype] || 'i/search';
+        return icons[recordtype] || 'search';
+    }
+
+    /**
+     * Get Font Awesome classes used when the SVG icon cannot load.
+     *
+     * @param {string} recordtype Record type key
+     * @return {string}
+     */
+    function getTypeFa(recordtype) {
+        var icons = {
+            user: 'fa-regular fa-user',
+            course: 'fa-solid fa-book',
+            activity: 'fa-solid fa-list-check',
+            setting: 'fa-solid fa-gear',
+            plugin: 'fa-solid fa-puzzle-piece',
+            category: 'fa-regular fa-folder'
+        };
+        return icons[recordtype] || 'fa-solid fa-magnifying-glass';
     }
 
     /**
@@ -162,44 +180,22 @@ define(['core/templates'], function(Templates) {
             subtitle = formatSubtitle(String(item.contextpath));
         }
 
-        var isuser = item.recordtype === 'user';
-        var initials = item.initials || '';
-        if (isuser && !initials) {
-            initials = getInitialsFromTitle(item.title || '');
-        }
+        var haspicture = item.recordtype === 'user' && !!(item.haspicture && item.pictureurl);
 
         return {
             id: item.id || '',
             recordid: item.recordid || '',
             recordtype: item.recordtype || '',
             icon: getTypeIcon(item.recordtype),
+            iconfa: getTypeFa(item.recordtype),
             typelabel: getCategoryLabel(item.recordtype),
-            isuser: isuser,
-            haspicture: !!(item.haspicture && item.pictureurl),
+            haspicture: haspicture,
             pictureurl: item.pictureurl || '',
-            initials: initials,
             url: item.url || '#',
             titlehtml: highlightText(item.title || '', query),
             hassubtitle: !!subtitle,
             subtitlehtml: highlightText(subtitle, query)
         };
-    }
-
-    /**
-     * Build initials from a result title.
-     *
-     * @param {string} title Display name
-     * @return {string}
-     */
-    function getInitialsFromTitle(title) {
-        var parts = String(title).trim().split(/\s+/).filter(Boolean);
-        if (!parts.length) {
-            return '';
-        }
-        if (parts.length === 1) {
-            return parts[0].substring(0, 2).toUpperCase();
-        }
-        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
     }
 
     /**
@@ -256,6 +252,31 @@ define(['core/templates'], function(Templates) {
     }
 
     /**
+     * Show Font Awesome icons when a result type SVG fails to load.
+     *
+     * @param {HTMLElement|null} container Results container
+     */
+    function bindTypeIconFallbacks(container) {
+        if (!container) {
+            return;
+        }
+        var wraps = container.querySelectorAll('.smartsearch-result-icon:not(.smartsearch-result-avatar)');
+        wraps.forEach(function(wrap) {
+            var img = wrap.querySelector('img.icon');
+            if (!img || img.dataset.ssBound) {
+                return;
+            }
+            img.dataset.ssBound = '1';
+            img.addEventListener('error', function() {
+                wrap.classList.add('is-using-fallback');
+            });
+            if (img.complete && img.naturalWidth === 0) {
+                wrap.classList.add('is-using-fallback');
+            }
+        });
+    }
+
+    /**
      * Set current query for highlighting.
      *
      * @param {string} query Query string
@@ -266,6 +287,7 @@ define(['core/templates'], function(Templates) {
 
     return {
         render: render,
-        setQuery: setQuery
+        setQuery: setQuery,
+        bindTypeIconFallbacks: bindTypeIconFallbacks
     };
 });
