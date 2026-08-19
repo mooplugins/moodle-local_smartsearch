@@ -325,7 +325,7 @@ class permissions {
             return $subtitle;
         }
 
-        $parts = preg_split('/\s•\s/', $subtitle) ?: [];
+        $parts = preg_split('/\s+•\s+/', $subtitle) ?: [];
         $kept = [];
         foreach ($parts as $part) {
             $part = trim($part);
