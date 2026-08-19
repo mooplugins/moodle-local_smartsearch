@@ -222,10 +222,12 @@ if (!empty($topqueries)) {
             'usePointStyle' => true,
         ],
     ]);
-    $chart->set_responsive_options([
-        'responsive' => true,
-        'maintainAspectRatio' => false,
-    ]);
+    if (method_exists($chart, 'set_responsive_options')) {
+        $chart->set_responsive_options([
+            'responsive' => true,
+            'maintainAspectRatio' => false,
+        ]);
+    }
 
     $chartsdata[] = [
         'title' => get_string('report_chart_top_queries', 'local_smartsearch'),
