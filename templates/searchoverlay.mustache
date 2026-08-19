@@ -17,6 +17,7 @@
         "clearsearch": "Clear search",
         "shortcut_close": "Close",
         "shortcut_esc": "Esc",
+        "canfeedback": true,
         "feedback_link": "Help us improve Smart Search"
     }
 }}
@@ -54,7 +55,9 @@
             </div>
             <div class="smartsearch-results" id="smartsearch-results" role="region" aria-live="polite" aria-label="{{resultslabel}}"></div>
             <div class="smartsearch-footer">
-                <button type="button" class="btn btn-link btn-sm text-muted p-0 smartsearch-feedback-link" id="smartsearch-feedback-open">{{feedback_link}}</button>
+                {{#canfeedback}}
+                <button type="button" class="btn btn-link btn-sm p-0 smartsearch-feedback-link" id="smartsearch-feedback-open">{{feedback_link}}</button>
+                {{/canfeedback}}
                 <div class="smartsearch-view-all" id="smartsearch-view-all" style="display: none;">
                     <a href="#" class="smartsearch-view-all-link">{{viewall}}</a>
                 </div>

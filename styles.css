@@ -386,6 +386,10 @@ button.smartsearch-esc {
     background: var(--ss-surface);
 }
 
+.smartsearch-footer.smartsearch-footer--hidden {
+    display: none;
+}
+
 .smartsearch-footer .smartsearch-view-all {
     margin-left: auto;
 }
@@ -398,12 +402,14 @@ button.smartsearch-esc {
     margin: 0;
     line-height: 1.4;
     font-size: 13px;
+    color: var(--ss-accent);
+    text-decoration: none;
 }
 
-.local-smartsearch .smartsearch-feedback-link,
 .local-smartsearch .smartsearch-feedback-link:hover,
 .local-smartsearch .smartsearch-feedback-link:focus,
 .local-smartsearch .smartsearch-feedback-link:focus-visible {
+    color: var(--ss-accent-hover);
     text-decoration: none;
 }
 

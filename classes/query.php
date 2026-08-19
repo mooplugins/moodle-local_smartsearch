@@ -380,6 +380,13 @@ class query {
                 continue;
             }
 
+            $record->subtitle = permissions::format_subtitle_for_viewer(
+                $userid,
+                (string) $record->recordtype,
+                (int) $record->recordid,
+                (string) ($record->subtitle ?? '')
+            );
+
             if ($area) {
                 $record->actions = self::filter_item_actions(
                     $area->get_item_actions($record->recordid, $userid),

@@ -185,6 +185,7 @@ $string['shortcut_navigate'] = 'to navigate';
 $string['shortcut_select'] = 'to select';
 $string['showing_result_count'] = 'Found {$a} result';
 $string['showing_results_count'] = 'Found {$a} results';
+$string['smartsearch:feedback'] = 'Submit Smart Search feedback';
 $string['smartsearch:manage'] = 'Manage Smart Search settings and indexing';
 $string['smartsearch:search'] = 'Use Smart Search';
 $string['starting_indexing'] = 'Starting indexing...';

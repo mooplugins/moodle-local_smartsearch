@@ -87,7 +87,7 @@ function local_smartsearch_extend_navigation(\global_navigation $navigation) {
         'showing_results_count',
         'showing_result_count',
     ];
-    $PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081807']));
+    $PAGE->requires->css(new \moodle_url('/local/smartsearch/styles.css', ['rev' => '2026081902']));
     $PAGE->requires->strings_for_js($strings, 'local_smartsearch');
 
     // Load JavaScript module (CSS should be loaded in page-specific hooks, not here).
@@ -95,9 +95,22 @@ function local_smartsearch_extend_navigation(\global_navigation $navigation) {
 }
 
 /**
+ * Whether the current user may submit Smart Search product feedback.
+ *
+ * Feedback emails include the submitter's name and email, so this is restricted
+ * to site administrators and users with the manager role at system level.
+ *
+ * @return bool
+ */
+function local_smartsearch_can_submit_feedback(): bool {
+    $context = \context_system::instance();
+    return has_capability('local/smartsearch:feedback', $context);
+}
+
+/**
  * UI config passed to the search AMD module.
  *
- * @return array{accentMode: string, accentColor: string}
+ * @return array{accentMode: string, accentColor: string, canFeedback: bool}
  */
 function local_smartsearch_get_ui_config(): array {
     $mode = get_config('local_smartsearch', 'accent_mode');
@@ -112,6 +125,7 @@ function local_smartsearch_get_ui_config(): array {
     return [
         'accentMode' => $mode,
         'accentColor' => $color,
+        'canFeedback' => local_smartsearch_can_submit_feedback(),
     ];
 }
 
