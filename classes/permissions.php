@@ -268,7 +268,9 @@ class permissions {
         if ($courseid > 1) {
             try {
                 $context = \context_course::instance($courseid);
-                $allowed = has_capability('moodle/course:viewparticipants', $context, $viewerid);
+                // Only staff roles (teachers, managers) should see enrolment counts.
+                // moodle/course:update is held by editingteacher+ but not students.
+                $allowed = has_capability('moodle/course:update', $context, $viewerid);
             } catch (\Exception $e) {
                 $allowed = false;
             }
