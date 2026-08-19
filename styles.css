@@ -708,16 +708,28 @@ body.smartsearch-feedback-open #smartsearch-overlay {
     background: var(--ss-surface);
 }
 
+.local-smartsearch .smartsearch-feedback-field .smartsearch-select-wrap {
+    position: relative;
+}
+
+.local-smartsearch .smartsearch-feedback-field .smartsearch-select-wrap::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--ss-text-secondary);
+    border-bottom: 2px solid var(--ss-text-secondary);
+    transform: translateY(-70%) rotate(45deg);
+}
+
 .local-smartsearch .smartsearch-feedback-field .form-select,
 .local-smartsearch .smartsearch-feedback-field select {
     padding-right: 36px;
     appearance: none;
     -webkit-appearance: none;
-    background-color: var(--ss-surface);
-    background-image: url(data:image/svg+xml,%3csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2016%2016%27%3e%3cpath%20fill=%27none%27%20stroke=%27%23536174%27%20stroke-linecap=%27round%27%20stroke-linejoin=%27round%27%20stroke-width=%272%27%20d=%27M2%205l6%206%206-6%27/%3e%3c/svg%3e);
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px 12px;
 }
 
 .local-smartsearch .smartsearch-feedback-field textarea {
