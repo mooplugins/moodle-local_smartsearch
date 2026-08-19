@@ -42,11 +42,13 @@
         <form id="smartsearch-feedback-form" class="smartsearch-feedback-form">
             <div class="smartsearch-feedback-field">
                 <label for="smartsearch-feedback-type">{{typelabel}}</label>
+                <div class="smartsearch-select-wrap">
                 <select id="smartsearch-feedback-type" class="form-select" name="feedbacktype">
                     {{#types}}
                     <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
                     {{/types}}
                 </select>
+                </div>
             </div>
             <div class="smartsearch-feedback-field">
                 <label for="smartsearch-feedback-message">{{messageLabel}} <span class="smartsearch-feedback-required">{{required}}</span></label>
