@@ -183,7 +183,7 @@ class search_external extends \external_api {
             }
         }
 
-        $formatted = self::attach_user_avatars($formatted);
+        $formatted = self::attach_user_avatars($formatted, (int) $USER->id);
 
         return [
             'results' => json_encode($formatted, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
@@ -194,9 +194,10 @@ class search_external extends \external_api {
      * Add user pictures, initials, roles, and enrolment counts to user results.
      *
      * @param array $formatted Grouped search results
+     * @param int $viewerid Current user id
      * @return array
      */
-    private static function attach_user_avatars(array $formatted): array {
+    private static function attach_user_avatars(array $formatted, int $viewerid): array {
         global $DB, $PAGE;
 
         if (empty($formatted['user']) || !is_array($formatted['user'])) {
@@ -218,35 +219,45 @@ class search_external extends \external_api {
             $fields = 'id, picture, imagealt, firstname, lastname, firstnamephonetic, lastnamephonetic, ' .
                 'middlename, alternatename, email';
             $users = $DB->get_records_list('user', 'id', $userids, '', $fields);
-            [$insql, $inparams] = $DB->get_in_or_equal($userids);
-            $rolerows = $DB->get_records_sql(
-                "SELECT ra.id, ra.userid, r.shortname
-                   FROM {role_assignments} ra
-                   JOIN {role} r ON r.id = ra.roleid
-                  WHERE ra.userid $insql",
-                $inparams
-            );
-            foreach ($rolerows as $rolerow) {
-                $roleuserid = (int) $rolerow->userid;
-                if (!isset($rolesbyuser[$roleuserid])) {
-                    $rolesbyuser[$roleuserid] = [];
-                }
-                if (!in_array($rolerow->shortname, $rolesbyuser[$roleuserid], true)) {
-                    $rolesbyuser[$roleuserid][] = $rolerow->shortname;
+
+            $metadatauserids = [];
+            foreach ($userids as $userid) {
+                if (\local_smartsearch\permissions::can_view_user_search_metadata($viewerid, $userid)) {
+                    $metadatauserids[$userid] = $userid;
                 }
             }
-            $counts = $DB->get_records_sql(
-                "SELECT ue.userid, COUNT(DISTINCT e.courseid) AS enrolcount
-                   FROM {user_enrolments} ue
-                   JOIN {enrol} e ON e.id = ue.enrolid
-                  WHERE ue.userid $insql
-                    AND e.status = 0
-                    AND ue.status = 0
-               GROUP BY ue.userid",
-                $inparams
-            );
-            foreach ($counts as $count) {
-                $enrolbyuser[(int) $count->userid] = (int) $count->enrolcount;
+
+            if (!empty($metadatauserids)) {
+                [$insql, $inparams] = $DB->get_in_or_equal($metadatauserids);
+                $rolerows = $DB->get_records_sql(
+                    "SELECT ra.id, ra.userid, r.shortname
+                       FROM {role_assignments} ra
+                       JOIN {role} r ON r.id = ra.roleid
+                      WHERE ra.userid $insql",
+                    $inparams
+                );
+                foreach ($rolerows as $rolerow) {
+                    $roleuserid = (int) $rolerow->userid;
+                    if (!isset($rolesbyuser[$roleuserid])) {
+                        $rolesbyuser[$roleuserid] = [];
+                    }
+                    if (!in_array($rolerow->shortname, $rolesbyuser[$roleuserid], true)) {
+                        $rolesbyuser[$roleuserid][] = $rolerow->shortname;
+                    }
+                }
+                $counts = $DB->get_records_sql(
+                    "SELECT ue.userid, COUNT(DISTINCT e.courseid) AS enrolcount
+                       FROM {user_enrolments} ue
+                       JOIN {enrol} e ON e.id = ue.enrolid
+                      WHERE ue.userid $insql
+                        AND e.status = 0
+                        AND ue.status = 0
+                   GROUP BY ue.userid",
+                    $inparams
+                );
+                foreach ($counts as $count) {
+                    $enrolbyuser[(int) $count->userid] = (int) $count->enrolcount;
+                }
             }
         }
 
@@ -273,6 +284,11 @@ class search_external extends \external_api {
             $formatted['user'][$index]['initials'] = $initials;
             $formatted['user'][$index]['pictureurl'] = $pictureurl;
             $formatted['user'][$index]['haspicture'] = $haspicture;
+
+            if (!\local_smartsearch\permissions::can_view_user_search_metadata($viewerid, $userid)) {
+                $formatted['user'][$index]['subtitle'] = '';
+                continue;
+            }
 
             $subtitleparts = [];
             $roles = $rolesbyuser[$userid] ?? [];

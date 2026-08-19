@@ -45,4 +45,12 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
+    'local/smartsearch:feedback' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+        ],
+    ],
 ];

@@ -83,6 +83,6 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
-        'capabilities' => 'local/smartsearch:search',
+        'capabilities' => 'local/smartsearch:feedback',
     ],
 ];

@@ -47,6 +47,15 @@ class permissions {
     /** @var array<string, bool> */
     private static $canviewusercache = [];
 
+    /** @var array<string, bool> */
+    private static $canviewusersearchcache = [];
+
+    /** @var array<string, bool> */
+    private static $canviewusermetadatacache = [];
+
+    /** @var array<string, bool> */
+    private static $canviewcourseenrolmentcache = [];
+
     /** @var array<int, \stdClass|null> */
     private static $courserecordcache = [];
 
@@ -60,6 +69,9 @@ class permissions {
         self::$cminfocache = [];
         self::$courseviewcache = [];
         self::$canviewusercache = [];
+        self::$canviewusersearchcache = [];
+        self::$canviewusermetadatacache = [];
+        self::$canviewcourseenrolmentcache = [];
         self::$courserecordcache = [];
     }
 
@@ -147,6 +159,282 @@ class permissions {
 
         self::$canviewusercache[$cachekey] = $allowed;
         return $allowed;
+    }
+
+    /**
+     * Whether a user may appear in Smart Search user results for the viewer.
+     * Stricter than can_view_user(): shared-course participant visibility alone is not enough.
+     *
+     * @param int $viewerid
+     * @param int $targetuserid
+     * @return bool
+     */
+    public static function can_view_user_in_search(int $viewerid, int $targetuserid): bool {
+        if (self::is_site_admin($viewerid)) {
+            return true;
+        }
+
+        $cachekey = $viewerid . ':' . $targetuserid;
+        if (array_key_exists($cachekey, self::$canviewusersearchcache)) {
+            return self::$canviewusersearchcache[$cachekey];
+        }
+
+        $allowed = false;
+        if ($viewerid === $targetuserid) {
+            $allowed = true;
+        } else {
+            $systemcontext = \context_system::instance();
+            if (has_capability('moodle/user:viewalldetails', $systemcontext, $viewerid)) {
+                $allowed = true;
+            } else {
+                try {
+                    $usercontext = \context_user::instance($targetuserid);
+                    if (has_capability('moodle/user:viewdetails', $usercontext, $viewerid)) {
+                        $allowed = true;
+                    }
+                } catch (\Exception $e) {
+                    $allowed = false;
+                }
+                if (!$allowed) {
+                    $allowed = self::get_shared_course_for_capabilities(
+                        $viewerid,
+                        $targetuserid,
+                        ['moodle/user:viewdetails']
+                    ) > 0;
+                }
+            }
+        }
+
+        self::$canviewusersearchcache[$cachekey] = $allowed;
+        return $allowed;
+    }
+
+    /**
+     * Whether the viewer may see roles/enrolment metadata on a user search result.
+     *
+     * @param int $viewerid
+     * @param int $targetuserid
+     * @return bool
+     */
+    public static function can_view_user_search_metadata(int $viewerid, int $targetuserid): bool {
+        if (self::is_site_admin($viewerid)) {
+            return true;
+        }
+
+        $cachekey = $viewerid . ':' . $targetuserid;
+        if (array_key_exists($cachekey, self::$canviewusermetadatacache)) {
+            return self::$canviewusermetadatacache[$cachekey];
+        }
+
+        $allowed = false;
+        if ($viewerid === $targetuserid) {
+            $allowed = true;
+        } else {
+            $systemcontext = \context_system::instance();
+            if (has_capability('moodle/user:viewalldetails', $systemcontext, $viewerid)) {
+                $allowed = true;
+            } else {
+                try {
+                    $usercontext = \context_user::instance($targetuserid);
+                    $allowed = has_capability('moodle/user:viewdetails', $usercontext, $viewerid);
+                } catch (\Exception $e) {
+                    $allowed = false;
+                }
+            }
+        }
+
+        self::$canviewusermetadatacache[$cachekey] = $allowed;
+        return $allowed;
+    }
+
+    /**
+     * Whether the viewer may see total enrolment count on a course search result.
+     *
+     * @param int $viewerid
+     * @param int $courseid
+     * @return bool
+     */
+    public static function can_view_course_enrolment_count(int $viewerid, int $courseid): bool {
+        if (self::is_site_admin($viewerid)) {
+            return true;
+        }
+
+        $cachekey = $viewerid . ':' . $courseid;
+        if (array_key_exists($cachekey, self::$canviewcourseenrolmentcache)) {
+            return self::$canviewcourseenrolmentcache[$cachekey];
+        }
+
+        $allowed = false;
+        if ($courseid > 1) {
+            try {
+                $context = \context_course::instance($courseid);
+                $allowed = has_capability('moodle/course:viewparticipants', $context, $viewerid);
+            } catch (\Exception $e) {
+                $allowed = false;
+            }
+        }
+
+        self::$canviewcourseenrolmentcache[$cachekey] = $allowed;
+        return $allowed;
+    }
+
+    /**
+     * Remove subtitle segments the viewer is not allowed to see.
+     *
+     * @param int $viewerid
+     * @param string $recordtype
+     * @param int $recordid
+     * @param string $subtitle
+     * @return string
+     */
+    public static function format_subtitle_for_viewer(
+        int $viewerid,
+        string $recordtype,
+        int $recordid,
+        string $subtitle
+    ): string {
+        $subtitle = trim($subtitle);
+        if ($subtitle === '' || $recordid <= 0) {
+            return $subtitle;
+        }
+
+        if ($recordtype === 'course' && !self::can_view_course_enrolment_count($viewerid, $recordid)) {
+            return self::strip_subtitle_segments($subtitle, [
+                get_string('enrolledusers', 'enrol'),
+            ]);
+        }
+
+        if ($recordtype === 'user' && !self::can_view_user_search_metadata($viewerid, $recordid)) {
+            return '';
+        }
+
+        return $subtitle;
+    }
+
+    /**
+     * Strip subtitle parts that begin with any of the given labels.
+     *
+     * @param string $subtitle
+     * @param string[] $labels
+     * @return string
+     */
+    protected static function strip_subtitle_segments(string $subtitle, array $labels): string {
+        if ($subtitle === '' || empty($labels)) {
+            return $subtitle;
+        }
+
+        $parts = preg_split('/\s•\s/', $subtitle) ?: [];
+        $kept = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            $remove = false;
+            foreach ($labels as $label) {
+                if ($label !== '' && stripos($part, $label) === 0) {
+                    $remove = true;
+                    break;
+                }
+            }
+            if (!$remove) {
+                $kept[] = $part;
+            }
+        }
+
+        return implode('  •  ', $kept);
+    }
+
+    /**
+     * Find a shared course where the viewer has one of the given capabilities.
+     *
+     * @param int $viewerid
+     * @param int $targetuserid
+     * @param string[] $capabilities
+     * @return int Course ID or 0 when none found
+     */
+    protected static function get_shared_course_for_capabilities(
+        int $viewerid,
+        int $targetuserid,
+        array $capabilities
+    ): int {
+        global $DB;
+
+        if (empty($capabilities)) {
+            return 0;
+        }
+
+        $coursesql = "SELECT c.id AS courseid
+               FROM {course} c
+              WHERE c.id <> 1
+                AND (
+                    EXISTS (
+                        SELECT 1
+                          FROM {user_enrolments} ue
+                          JOIN {enrol} e ON e.id = ue.enrolid
+                         WHERE ue.userid = ?
+                           AND e.courseid = c.id
+                           AND e.status = 0
+                           AND ue.status = 0
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                          FROM {role_assignments} ra
+                          JOIN {context} ctx ON ctx.id = ra.contextid
+                         WHERE ra.userid = ?
+                           AND ctx.contextlevel = ?
+                           AND ctx.instanceid = c.id
+                    )
+                )
+                AND (
+                    EXISTS (
+                        SELECT 1
+                          FROM {user_enrolments} ue
+                          JOIN {enrol} e ON e.id = ue.enrolid
+                         WHERE ue.userid = ?
+                           AND e.courseid = c.id
+                           AND e.status = 0
+                           AND ue.status = 0
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                          FROM {role_assignments} ra
+                          JOIN {context} ctx ON ctx.id = ra.contextid
+                         WHERE ra.userid = ?
+                           AND ctx.contextlevel = ?
+                           AND ctx.instanceid = c.id
+                    )
+                )
+           ORDER BY c.sortorder ASC, c.id ASC";
+
+        $params = [
+            $viewerid,
+            $viewerid,
+            CONTEXT_COURSE,
+            $targetuserid,
+            $targetuserid,
+            CONTEXT_COURSE,
+        ];
+        $recordset = $DB->get_recordset_sql($coursesql, $params);
+        foreach ($recordset as $course) {
+            $courseid = (int) $course->courseid;
+            if ($courseid <= 0) {
+                continue;
+            }
+            try {
+                $coursecontext = \context_course::instance($courseid);
+                foreach ($capabilities as $capability) {
+                    if (has_capability($capability, $coursecontext, $viewerid)) {
+                        $recordset->close();
+                        return $courseid;
+                    }
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+        $recordset->close();
+        return 0;
     }
 
     /**

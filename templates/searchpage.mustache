@@ -17,6 +17,7 @@
         "resultslabel": "Search results",
         "filterslabel": "Results from",
         "paginationlabel": "Search result pages",
+        "canfeedback": true,
         "feedback_link": "Help us improve Smart Search",
         "filters": [
             {"key": "course", "label": "Courses"},
@@ -71,7 +72,9 @@
          aria-live="polite"
          aria-label="{{resultslabel}}"></div>
     <div class="smartsearch-pagination" id="smartsearch-pagination" aria-label="{{paginationlabel}}"></div>
+    {{#canfeedback}}
     <div class="smartsearch-page-footer">
-        <button type="button" class="btn btn-link btn-sm text-muted p-0 smartsearch-feedback-link" id="smartsearch-page-feedback-open">{{feedback_link}}</button>
+        <button type="button" class="btn btn-link btn-sm p-0 smartsearch-feedback-link" id="smartsearch-page-feedback-open">{{feedback_link}}</button>
     </div>
+    {{/canfeedback}}
 </div>

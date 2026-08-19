@@ -218,7 +218,7 @@ class user extends base {
      * @return bool
      */
     public function can_index(int $userid, int $itemid): bool {
-        return \local_smartsearch\permissions::can_view_user($userid, $itemid);
+        return \local_smartsearch\permissions::can_view_user_in_search($userid, $itemid);
     }
 
     /**

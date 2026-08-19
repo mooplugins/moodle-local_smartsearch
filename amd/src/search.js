@@ -143,7 +143,8 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
 
         uiConfig = {
             accentMode: (config && config.accentMode) ? config.accentMode : 'default',
-            accentColor: (config && config.accentColor) ? config.accentColor : '#1C6CF7'
+            accentColor: (config && config.accentColor) ? config.accentColor : '#1C6CF7',
+            canFeedback: !!(config && config.canFeedback)
         };
         applyAccentConfig(uiConfig);
 
@@ -384,6 +385,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         var viewAll = document.getElementById('smartsearch-view-all');
         var link = viewAll ? viewAll.querySelector('.smartsearch-view-all-link') : null;
         if (!viewAll || !link) {
+            syncFooterVisibility();
             return;
         }
         var inputQuery = getActiveInputQuery();
@@ -398,6 +400,21 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
         } else {
             viewAll.style.display = 'none';
         }
+        syncFooterVisibility();
+    }
+
+    /**
+     * Hide the overlay footer when it has no visible actions.
+     */
+    function syncFooterVisibility() {
+        var footer = document.querySelector('.smartsearch-footer');
+        if (!footer) {
+            return;
+        }
+        var hasFeedback = footer.querySelector('.smartsearch-feedback-link') !== null;
+        var viewAll = document.getElementById('smartsearch-view-all');
+        var hasViewAll = viewAll && viewAll.style.display === 'block';
+        footer.classList.toggle('smartsearch-footer--hidden', !hasFeedback && !hasViewAll);
     }
 
     /**
@@ -626,6 +643,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             resultsContainer = overlayResultsContainer;
             ensureViewAllContainer();
             bindFeedbackTrigger();
+            syncFooterVisibility();
             applyAccentConfig(uiConfig);
             return Promise.resolve();
         }
@@ -638,6 +656,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             clearsearch: strings.clearsearch,
             shortcut_close: strings.shortcut_close,
             shortcut_esc: strings.shortcut_esc,
+            canfeedback: uiConfig.canFeedback,
             feedback_link: strings.feedback_link
         };
 
@@ -653,6 +672,7 @@ define(['core/templates', 'core/ajax', 'core/str', 'local_smartsearch/keyboard',
             resultsContainer = overlayResultsContainer;
             ensureViewAllContainer();
             bindFeedbackTrigger();
+            syncFooterVisibility();
             applyAccentConfig(uiConfig);
             return undefined;
         });
