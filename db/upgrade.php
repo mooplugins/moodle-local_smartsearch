@@ -126,5 +126,9 @@ function xmldb_local_smartsearch_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026081900, 'local', 'smartsearch');
     }
 
+    if ($oldversion < 2026082600) {
+        upgrade_plugin_savepoint(true, 2026082600, 'local', 'smartsearch');
+    }
+
     return true;
 }

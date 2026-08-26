@@ -105,7 +105,7 @@ class course extends base {
             "SELECT COUNT(DISTINCT ue.userid)
              FROM {user_enrolments} ue
              JOIN {enrol} e ON e.id = ue.enrolid
-             WHERE e.courseid = ? AND ue.status = 0",
+             WHERE e.courseid = ? AND e.status = 0 AND ue.status = 0",
             [$itemid]
         );
         if ($courseenrollments > 0) {
