@@ -62,7 +62,11 @@ class actions {
         if (has_capability('moodle/user:loginas', \context_system::instance(), $userid)) {
             $actions[] = [
                 'label' => get_string('action_loginas', 'local_smartsearch'),
-                'url' => new \moodle_url('/course/loginas.php', ['id' => $targetuserid, 'sesskey' => sesskey()]),
+                'url' => new \moodle_url('/course/loginas.php', [
+                    'id' => SITEID,
+                    'user' => $targetuserid,
+                    'sesskey' => sesskey(),
+                ]),
                 'icon' => 'right-to-bracket',
             ];
         }

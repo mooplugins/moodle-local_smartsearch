@@ -704,6 +704,33 @@ class query {
     }
 
     /**
+     * Path for category management links shown to managers/admins.
+     *
+     * @return string Site-relative path starting with /
+     */
+    protected static function get_category_management_path(): string {
+        global $CFG;
+
+        $default = '/course/management.php';
+        $configured = $CFG->local_smartsearch_category_management_path ?? null;
+        if (empty($configured) || !is_string($configured)) {
+            return $default;
+        }
+
+        $path = trim($configured);
+        if ($path === '') {
+            return $default;
+        }
+
+        // Allow absolute site paths only (no external URLs).
+        if (preg_match('#^https?://#i', $path)) {
+            return $default;
+        }
+
+        return '/' . ltrim($path, '/');
+    }
+
+    /**
      * Resolve the best URL for a search result, preferring the indexed URL when safe.
      *
      * @param \stdClass $record Index row
@@ -724,7 +751,10 @@ class query {
             $record->recordtype === 'category'
             && permissions::can_access_courses_management_page($userid)
         ) {
-            return new \moodle_url('/courses.php', ['categoryid' => (int) $record->recordid]);
+            return new \moodle_url(
+                self::get_category_management_path(),
+                ['categoryid' => (int) $record->recordid]
+            );
         }
 
         if (!empty($record->url) && is_string($record->url)) {

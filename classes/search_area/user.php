@@ -48,8 +48,9 @@ class user extends base {
         self::$bulkroles = [];
         self::$bulkenrolcounts = [];
 
-        $roles = $DB->get_records_sql(
-            "SELECT ra.userid, r.shortname
+        // Use a recordset keyed by ra.id so multi-role users are not collapsed by get_records_sql.
+        $roles = $DB->get_recordset_sql(
+            "SELECT ra.id, ra.userid, r.shortname
                FROM {role_assignments} ra
                JOIN {role} r ON r.id = ra.roleid"
         );
@@ -62,6 +63,7 @@ class user extends base {
                 self::$bulkroles[$userid][] = $role->shortname;
             }
         }
+        $roles->close();
 
         $counts = $DB->get_records_sql(
             "SELECT ue.userid, COUNT(DISTINCT e.courseid) AS enrolcount

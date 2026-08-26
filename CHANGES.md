@@ -2,6 +2,22 @@
 
 All notable changes to the Smart Search plugin are documented here.
 
+## 1.0.15 - 2026-08-26
+
+### Added
+
+- Optional `config.php` overrides:
+  - `$CFG->local_smartsearch_feedback_email` — feedback destination (default `support@mooplugins.com`)
+  - `$CFG->local_smartsearch_category_management_path` — category management path for managers/admins (default `/course/management.php`)
+
+### Fixed
+
+- Category search results for managers/admins now open Moodle course management (`/course/management.php`) instead of a non-existent `/courses.php` page.
+- "Log in as" quick action now passes the correct course and user parameters expected by core.
+- Bulk user indexing no longer drops extra roles when a user has multiple role assignments.
+- Course "Enrolled users" counts ignore disabled enrolment methods (`enrol.status`).
+- Removed Font Awesome Pro commercial license notices from category SVG icons.
+
 ## 1.0.14 - 2026-08-19
 
 ### Added

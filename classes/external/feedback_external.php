@@ -33,8 +33,26 @@ require_once($CFG->libdir . '/filelib.php');
  * External feedback API.
  */
 class feedback_external extends \external_api {
-    /** Feedback destination email. */
+    /** Default feedback destination email (overridable via $CFG->local_smartsearch_feedback_email). */
     private const FEEDBACK_EMAIL = 'support@mooplugins.com';
+
+    /**
+     * Resolve the feedback destination email.
+     *
+     * @return string
+     */
+    protected static function get_feedback_email(): string {
+        global $CFG;
+
+        if (!empty($CFG->local_smartsearch_feedback_email) && is_string($CFG->local_smartsearch_feedback_email)) {
+            $email = trim($CFG->local_smartsearch_feedback_email);
+            if ($email !== '' && validate_email($email)) {
+                return $email;
+            }
+        }
+
+        return self::FEEDBACK_EMAIL;
+    }
 
     /**
      * Parameters for submit_feedback.
@@ -176,7 +194,7 @@ class feedback_external extends \external_api {
 
         $recipient = \core_user::get_noreply_user();
         $recipient->id = -1999;
-        $recipient->email = self::FEEDBACK_EMAIL;
+        $recipient->email = self::get_feedback_email();
         $recipient->firstname = 'MooPlugins';
         $recipient->lastname = 'Support';
         $recipient->maildisplay = true;
