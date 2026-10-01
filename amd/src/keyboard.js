@@ -17,8 +17,7 @@
  * Keyboard navigation for Smart Search.
  *
  * @module     local_smartsearch/keyboard
- * @author     BitKea Technologies LLP
- * @copyright  2026 BitKea Technologies LLP
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

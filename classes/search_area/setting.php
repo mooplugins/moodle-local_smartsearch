@@ -18,8 +18,7 @@
  * Settings search area.
  *
  * @package    local_smartsearch
- * @author     BitKea Technologies LLP
- * @copyright  2026 BitKea Technologies LLP
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -65,10 +64,11 @@ class setting extends base {
 
         // Ensure admin tree is fully loaded.
         require_once($CFG->libdir . '/adminlib.php');
-        // Force reload and require full tree (all settings).
-        // Note: admin_get_root() returns the global $ADMIN and ensures it's loaded.
+        // Reload only if $ADMIN is not already built (avoids a second full tree walk
+        // when settings and plugin areas index in the same run).
         try {
-            $adminroot = admin_get_root(true, true);
+            global $ADMIN;
+            $adminroot = admin_get_root(empty($ADMIN), true);
             $msg = "Smart Search Settings: Admin root loaded: " . ($adminroot ? 'yes' : 'no');
             debugging($msg);
 

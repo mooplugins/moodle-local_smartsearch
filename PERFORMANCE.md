@@ -37,15 +37,18 @@ These are cached where possible but still run per visible result.
 | Area | Approach |
 |------|----------|
 | Index upserts | Existing index rows for an area are loaded once into a map; `add_to_index()` no longer calls `get_record()` per item. |
+| Unchanged rows | `index_row_unchanged()` skips `UPDATE` when title/subtitle/url/keywords/metadata/contextpath match. |
 | Activity indexing | Recordset rows are passed to `activity::index_item()`; `get_modinfo_for_course()` caches one `get_fast_modinfo()` per course during bulk indexing. |
 | User indexing | `user::begin_bulk_index()` preloads all role assignments and enrolment counts in two site-wide queries before the user recordset loop. |
 | Category paths | `category_path::get_path()` loads all categories once per `index_all()` run. |
-| Orphan cleanup | `record_exists()` on each search area (cheap `record_exists` on source tables) instead of full `index_item()` re-index. |
+| Orphan cleanup | Set-based `LEFT JOIN` via `get_orphan_recordids()` for user/course/category/activity (a few queries, not one per row). Custom registered areas still fall back to `record_exists()`. |
 | Course indexing | Removed unused site-wide `count_records('user_enrolments')` that ran on every course. |
+| Admin areas on cron | Settings/plugin tree rebuild runs on full reindex, or at most weekly on incremental cron (`ADMIN_AREA_REFRESH_INTERVAL` / `last_admin_index_time`). |
+| Admin tree load | Settings then plugins reuse `$ADMIN` when already built (`admin_get_root(empty($ADMIN), true)`). |
 
 ### Settings and plugin pages
 
-These use hash-based record IDs. Orphan cleanup skips them; entries are refreshed on full reindex via `index_all_settings()` / plugin tree walk.
+These use hash-based record IDs. Orphan cleanup skips them; entries are refreshed on full reindex, chunked reindex, or the weekly admin-area refresh — not on every incremental cron.
 
 ## Frontend
 

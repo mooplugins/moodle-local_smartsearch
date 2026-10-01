@@ -18,8 +18,7 @@
  * Static architecture and regression checks for Smart Search CI.
  *
  * @package    local_smartsearch
- * @author     BitKea Technologies LLP
- * @copyright  2026 BitKea Technologies LLP
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -136,8 +135,17 @@ final class quality_gate {
         }
 
         $indexerphp = $this->read('classes/indexer.php');
-        if ($indexerphp !== '' && !preg_match('/function\s+cleanup_orphaned_entries.*?record_exists\s*\(/s', $indexerphp)) {
-            $this->fail('classes/indexer.php: orphan cleanup must use record_exists(), not index_item().');
+        if ($indexerphp !== '' && !str_contains($indexerphp, 'get_orphan_recordids')) {
+            $this->fail('classes/indexer.php: orphan cleanup must use set-based get_orphan_recordids().');
+        }
+        if ($indexerphp !== '' && preg_match('/function\s+cleanup_orphaned_entries.*?(?:->|::)index_item\s*\(/s', $indexerphp)) {
+            $this->fail('classes/indexer.php: orphan cleanup must not call index_item().');
+        }
+        if ($indexerphp !== '' && !str_contains($indexerphp, 'index_row_unchanged')) {
+            $this->fail('classes/indexer.php: add_to_index() must skip unchanged rows via index_row_unchanged().');
+        }
+        if ($indexerphp !== '' && !str_contains($indexerphp, 'should_refresh_admin_areas')) {
+            $this->fail('classes/indexer.php: incremental cron must gate settings/plugin rebuilds.');
         }
         $addtoindexpattern = '/function\s+add_to_index\s*\([^)]*\)[^{]*\{[^}]*get_record\s*\(\s*[\'"]local_smartsearch_index/s';
         if ($indexerphp !== '' && preg_match($addtoindexpattern, $indexerphp)) {

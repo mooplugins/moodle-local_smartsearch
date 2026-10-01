@@ -18,8 +18,7 @@
  * Language strings for Smart Search plugin.
  *
  * @package    local_smartsearch
- * @author     BitKea Technologies LLP
- * @copyright  2026 BitKea Technologies LLP
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
