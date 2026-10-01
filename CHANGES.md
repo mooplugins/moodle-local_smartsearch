@@ -2,13 +2,22 @@
 
 All notable changes to the Smart Search plugin are documented here.
 
+## 1.0.16 - 2026-10-01
+
+### Improved
+
+- Incremental indexing cron no longer rebuilds settings/plugin admin-tree areas every run (weekly refresh, or always on full reindex).
+- Orphan cleanup uses set-based `LEFT JOIN` queries instead of one `record_exists()` per indexed row.
+- Index upserts skip `UPDATE` when content is unchanged.
+- Settings and plugin indexing reuse a warm admin tree in the same run.
+
 ## 1.0.15 - 2026-08-26
 
 ### Added
 
 - Optional `config.php` overrides:
-  - `$CFG->local_smartsearch_feedback_email` — feedback destination (default `support@mooplugins.com`)
-  - `$CFG->local_smartsearch_category_management_path` — category management path for managers/admins (default `/course/management.php`)
+    - `$CFG->local_smartsearch_feedback_email` — feedback destination (default `support@mooplugins.com`)
+    - `$CFG->local_smartsearch_category_management_path` — category management path for managers/admins (default `/course/management.php`)
 
 ### Fixed
 

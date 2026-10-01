@@ -18,8 +18,7 @@
  * Filter form for Smart Search analytics report.
  *
  * @package    local_smartsearch
- * @author     BitKea Technologies LLP
- * @copyright  2026 BitKea Technologies LLP
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -33,8 +32,7 @@ require_once($CFG->libdir . '/formslib.php');
  * Filter form class for analytics report.
  *
  * @package    local_smartsearch
- * @author     BitKea Technologies LLP
- * @copyright  2026 BitKea Technologies LLP
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class filter_form extends \moodleform {

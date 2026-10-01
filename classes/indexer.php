@@ -18,8 +18,7 @@
  * Indexer class for Smart Search.
  *
  * @package    local_smartsearch
- * @author     BitKea Technologies LLP
- * @copyright  2026 BitKea Technologies LLP
+ * @copyright  2026 Mooplugins
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -30,6 +29,12 @@ namespace local_smartsearch;
  * Handles indexing logic for Smart Search.
  */
 class indexer {
+    /**
+     * How often incremental cron refreshes settings/plugin admin-tree areas.
+     * Full reindex (modifiedfrom=0) always refreshes them.
+     */
+    public const ADMIN_AREA_REFRESH_INTERVAL = WEEKSECS;
+
     /**
      * Index all items from all enabled search areas.
      *
@@ -71,6 +76,9 @@ class indexer {
             return $stats;
         }
 
+        // Settings/plugins ignore modifiedfrom and are expensive; refresh on a schedule.
+        $refreshadmin = self::should_refresh_admin_areas($modifiedfrom);
+
         foreach ($searchareas as $area) {
             // Note: get_enabled_search_areas() already filters by is_enabled(),
             // but we check again here for safety.
@@ -81,6 +89,11 @@ class indexer {
 
             // Handle special cases for settings and plugin pages.
             if ($area instanceof \local_smartsearch\search_area\setting) {
+                if (!$refreshadmin) {
+                    debugging('Smart Search: Skipping settings area on incremental run '
+                        . '(refreshed within ADMIN_AREA_REFRESH_INTERVAL).', DEBUG_NORMAL);
+                    continue;
+                }
                 try {
                     $settings = $area->index_all_settings();
                     $existingindex = self::load_existing_index_map($area->get_record_type());
@@ -144,6 +157,11 @@ class indexer {
             }
 
             if ($area instanceof \local_smartsearch\search_area\plugin) {
+                if (!$refreshadmin) {
+                    debugging('Smart Search: Skipping plugin area on incremental run '
+                        . '(refreshed within ADMIN_AREA_REFRESH_INTERVAL).', DEBUG_NORMAL);
+                    continue;
+                }
                 try {
                     $pages = $area->index_all_plugin_pages();
                     $existingindex = self::load_existing_index_map($area->get_record_type());
@@ -259,10 +277,33 @@ class indexer {
             }
         }
 
+        if ($refreshadmin) {
+            set_config('last_admin_index_time', time(), 'local_smartsearch');
+        }
+
         // Clean up orphaned entries.
         self::cleanup_orphaned_entries();
 
         return $stats;
+    }
+
+    /**
+     * Whether settings/plugin admin-tree areas should be rebuilt this run.
+     *
+     * @param int $modifiedfrom Incremental cutoff (0 = full reindex)
+     * @return bool
+     */
+    protected static function should_refresh_admin_areas(int $modifiedfrom): bool {
+        if ($modifiedfrom <= 0) {
+            return true;
+        }
+
+        $lastadmin = (int) get_config('local_smartsearch', 'last_admin_index_time');
+        if ($lastadmin <= 0) {
+            return true;
+        }
+
+        return (time() - $lastadmin) >= self::ADMIN_AREA_REFRESH_INTERVAL;
     }
 
     /**
@@ -426,6 +467,7 @@ class indexer {
             self::persist_stats($state['stats']);
             self::cleanup_orphaned_entries();
             set_config('last_index_time', time(), 'local_smartsearch');
+            set_config('last_admin_index_time', time(), 'local_smartsearch');
             if (!empty($state['stats']['error_details'])) {
                 set_config('indexing_error_details', json_encode($state['stats']['error_details']), 'local_smartsearch');
             } else {
@@ -801,10 +843,10 @@ class indexer {
     }
 
     /**
-     * Load recordid => index row id map for one search area.
+     * Load recordid => indexed row map for one search area (for upsert + unchanged checks).
      *
      * @param string $recordtype Record type
-     * @return array<int, int>
+     * @return array<int, \stdClass>
      */
     protected static function load_existing_index_map(string $recordtype): array {
         global $DB;
@@ -814,20 +856,62 @@ class indexer {
             'local_smartsearch_index',
             ['recordtype' => $recordtype],
             '',
-            'recordid, id'
+            'recordid, id, contextpath, title, subtitle, keywords, url, metadata'
         );
         foreach ($existingrecords as $existingrecord) {
-            $existingindex[(int) $existingrecord->recordid] = (int) $existingrecord->id;
+            $existingindex[(int) $existingrecord->recordid] = $existingrecord;
         }
 
         return $existingindex;
     }
 
     /**
+     * Whether an existing index row already matches the prepared record (skip UPDATE).
+     *
+     * @param \stdClass $existing Existing DB row (subset of fields)
+     * @param \stdClass $record Prepared index record
+     * @return bool
+     */
+    protected static function index_row_unchanged(\stdClass $existing, \stdClass $record): bool {
+        return (string) ($existing->title ?? '') === (string) $record->title
+            && (string) ($existing->subtitle ?? '') === (string) $record->subtitle
+            && (string) ($existing->contextpath ?? '') === (string) $record->contextpath
+            && (string) ($existing->url ?? '') === (string) $record->url
+            && (string) ($existing->keywords ?? '') === (string) $record->keywords
+            && (string) ($existing->metadata ?? '') === (string) $record->metadata;
+    }
+
+    /**
+     * Store/refresh the in-memory map entry after insert/update.
+     *
+     * @param array $existingindex Map updated in place
+     * @param int $recordid Source record id
+     * @param int $indexid Index table id
+     * @param \stdClass $record Prepared index record
+     */
+    protected static function remember_index_map_entry(
+        array &$existingindex,
+        int $recordid,
+        int $indexid,
+        \stdClass $record
+    ): void {
+        $existingindex[$recordid] = (object) [
+            'id' => $indexid,
+            'recordid' => $recordid,
+            'contextpath' => $record->contextpath,
+            'title' => $record->title,
+            'subtitle' => $record->subtitle,
+            'keywords' => $record->keywords,
+            'url' => $record->url,
+            'metadata' => $record->metadata,
+        ];
+    }
+
+    /**
      * Add or update an item in the index.
      *
      * @param array $itemdata Array with keys: recordtype, recordid, title, subtitle, keywords, url, metadata
-     * @param array $existingindex Map of recordid => index row id (updated in place)
+     * @param array $existingindex Map of recordid => index row (updated in place)
      * @return bool Success
      */
     protected static function add_to_index(array $itemdata, array &$existingindex = []): bool {
@@ -923,9 +1007,19 @@ class indexer {
             ];
 
             $recordid = (int) $record->recordid;
-            $existingid = $existingindex[$recordid] ?? null;
+            $existing = $existingindex[$recordid] ?? null;
+            $existingid = null;
+            if (is_object($existing) && isset($existing->id)) {
+                $existingid = (int) $existing->id;
+            } else if (is_numeric($existing)) {
+                $existingid = (int) $existing;
+            }
 
             if ($existingid) {
+                // Skip write when content is unchanged (avoids thousands of no-op UPDATEs).
+                if (is_object($existing) && self::index_row_unchanged($existing, $record)) {
+                    return true;
+                }
                 $record->id = $existingid;
                 $result = $DB->update_record('local_smartsearch_index', $record);
                 if (!$result) {
@@ -934,8 +1028,10 @@ class indexer {
                         . "recordid={$record->recordid}",
                         DEBUG_NORMAL
                     );
+                    return false;
                 }
-                return $result;
+                self::remember_index_map_entry($existingindex, $recordid, $existingid, $record);
+                return true;
             }
 
             $newid = $DB->insert_record('local_smartsearch_index', $record);
@@ -945,7 +1041,7 @@ class indexer {
                     "recordid={$record->recordid}, title={$titleshort}", DEBUG_NORMAL);
                 return false;
             }
-            $existingindex[$recordid] = (int) $newid;
+            self::remember_index_map_entry($existingindex, $recordid, (int) $newid, $record);
             return true;
         } catch (\dml_exception $e) {
             // Unique (recordtype, recordid) from a previous index run: update instead.
@@ -956,8 +1052,16 @@ class indexer {
                 ]);
                 if ($existing) {
                     $record->id = $existing->id;
-                    $existingindex[(int) $record->recordid] = (int) $existing->id;
-                    return (bool) $DB->update_record('local_smartsearch_index', $record);
+                    $result = (bool) $DB->update_record('local_smartsearch_index', $record);
+                    if ($result) {
+                        self::remember_index_map_entry(
+                            $existingindex,
+                            (int) $record->recordid,
+                            (int) $existing->id,
+                            $record
+                        );
+                    }
+                    return $result;
                 }
             }
             debugging('Smart Search: Error adding to index: ' . $e->getMessage(), DEBUG_NORMAL);
@@ -968,6 +1072,80 @@ class indexer {
         }
     }
 
+    /**
+     * Return orphaned index recordids for a known core search area (set-based).
+     *
+     * @param string $recordtype Record type
+     * @return int[]|null List of orphan ids, or null if this type needs per-row fallback
+     */
+    protected static function get_orphan_recordids(string $recordtype): ?array {
+        global $DB;
+
+        switch ($recordtype) {
+            case 'user':
+                $sql = "SELECT i.recordid
+                          FROM {local_smartsearch_index} i
+                     LEFT JOIN {user} u ON u.id = i.recordid AND u.deleted = 0
+                         WHERE i.recordtype = ?
+                           AND u.id IS NULL";
+                break;
+            case 'course':
+                $sql = "SELECT i.recordid
+                          FROM {local_smartsearch_index} i
+                     LEFT JOIN {course} c ON c.id = i.recordid
+                         WHERE i.recordtype = ?
+                           AND (i.recordid <= 1 OR c.id IS NULL)";
+                break;
+            case 'category':
+                $sql = "SELECT i.recordid
+                          FROM {local_smartsearch_index} i
+                     LEFT JOIN {course_categories} cc ON cc.id = i.recordid
+                         WHERE i.recordtype = ?
+                           AND cc.id IS NULL";
+                break;
+            case 'activity':
+                $sql = "SELECT i.recordid
+                          FROM {local_smartsearch_index} i
+                     LEFT JOIN {course_modules} cm ON cm.id = i.recordid AND cm.deletioninprogress = 0
+                         WHERE i.recordtype = ?
+                           AND cm.id IS NULL";
+                break;
+            default:
+                return null;
+        }
+
+        $ids = $DB->get_fieldset_sql($sql, [$recordtype]);
+        return array_map('intval', $ids);
+    }
+
+    /**
+     * Delete orphaned index rows in chunks.
+     *
+     * @param string $recordtype Record type
+     * @param int[] $recordids Orphaned source ids
+     * @return int Number deleted
+     */
+    protected static function delete_orphan_recordids(string $recordtype, array $recordids): int {
+        global $DB;
+
+        if (empty($recordids)) {
+            return 0;
+        }
+
+        $deleted = 0;
+        foreach (array_chunk($recordids, 500) as $chunk) {
+            [$insql, $params] = $DB->get_in_or_equal($chunk, SQL_PARAMS_QM);
+            $params = array_merge([$recordtype], $params);
+            $DB->delete_records_select(
+                'local_smartsearch_index',
+                "recordtype = ? AND recordid {$insql}",
+                $params
+            );
+            $deleted += count($chunk);
+        }
+
+        return $deleted;
+    }
 
     /**
      * Clean up orphaned index entries (items that no longer exist).
@@ -992,7 +1170,7 @@ class indexer {
                 $recordtype = $area->get_record_type();
 
                 // Skip cleanup for settings and plugin pages - they use hash-based IDs
-                // and don't have a numeric ID that can be checked via index_item().
+                // and don't map cleanly to source-table existence checks.
                 if (
                     $area instanceof \local_smartsearch\search_area\setting ||
                     $area instanceof \local_smartsearch\search_area\plugin
@@ -1000,8 +1178,19 @@ class indexer {
                     continue;
                 }
 
-                $indexeditems = $DB->get_records('local_smartsearch_index', ['recordtype' => $recordtype], '', 'DISTINCT recordid');
+                $orphans = self::get_orphan_recordids($recordtype);
+                if ($orphans !== null) {
+                    $cleaned += self::delete_orphan_recordids($recordtype, $orphans);
+                    continue;
+                }
 
+                // Fallback for registered/custom areas: one existence check per indexed id.
+                $indexeditems = $DB->get_records(
+                    'local_smartsearch_index',
+                    ['recordtype' => $recordtype],
+                    '',
+                    'recordid'
+                );
                 foreach ($indexeditems as $indexed) {
                     try {
                         if (!$area->record_exists((int) $indexed->recordid)) {
@@ -1009,7 +1198,6 @@ class indexer {
                             $cleaned++;
                         }
                     } catch (\Exception $e) {
-                        // Skip items that cause errors during cleanup.
                         debugging('Smart Search: Error checking item during cleanup: ' . $e->getMessage(), DEBUG_NORMAL);
                     }
                 }

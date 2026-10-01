@@ -1,7 +1,6 @@
 # IDE and OS files.
 .idea/
 .vscode/
-.cursor/
 *.swp
 *.swo
 .DS_Store
