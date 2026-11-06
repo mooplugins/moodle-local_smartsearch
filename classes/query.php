@@ -79,7 +79,7 @@ class query {
             }
         }
 
-        // Log search for analytics (anonymous).
+        // Log search for analytics, linked to the current user.
         if (get_config('local_smartsearch', 'enable_analytics')) {
             analytics::log_search($query, array_sum(array_map('count', $results)));
         }

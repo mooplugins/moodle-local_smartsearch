@@ -26,7 +26,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_smartsearch';
-$plugin->version = 2026100100;
+$plugin->version = 2026110600;
 $plugin->requires = 2024100700; // Moodle 4.5 or later.
 $plugin->supported = [405, 502]; // Moodle 4.5 through 5.2.
 $plugin->maturity = MATURITY_STABLE;

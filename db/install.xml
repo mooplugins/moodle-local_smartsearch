@@ -28,9 +28,10 @@
         <!-- XMLDB doesn't support FULLTEXT indexes well, so it's handled programmatically -->
       </INDEXES>
     </TABLE>
-    <TABLE NAME="local_smartsearch_log" COMMENT="Anonymous search analytics log">
+    <TABLE NAME="local_smartsearch_log" COMMENT="Search analytics log">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="query" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="result_count" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
         <FIELD NAME="clicked_result_id" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
@@ -40,6 +41,7 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
       <INDEXES>
+        <INDEX NAME="idx_userid" UNIQUE="false" FIELDS="userid"/>
         <INDEX NAME="idx_timestamp" UNIQUE="false" FIELDS="timestamp"/>
       </INDEXES>
     </TABLE>

@@ -47,6 +47,7 @@ class provider implements
         $collection->add_database_table(
             'local_smartsearch_log',
             [
+                'userid' => 'privacy:metadata:local_smartsearch_log:userid',
                 'query' => 'privacy:metadata:local_smartsearch_log:query',
                 'result_count' => 'privacy:metadata:local_smartsearch_log:result_count',
                 'clicked_result_id' => 'privacy:metadata:local_smartsearch_log:clicked_result_id',
@@ -83,12 +84,12 @@ class provider implements
 
         $contextlist = new contextlist();
 
-        if (
-            $DB->record_exists('local_smartsearch_index', [
+        $hasindex = $DB->record_exists('local_smartsearch_index', [
             'recordtype' => 'user',
             'recordid' => $userid,
-            ])
-        ) {
+        ]);
+        $haslog = $DB->record_exists('local_smartsearch_log', ['userid' => $userid]);
+        if ($hasindex || $haslog) {
             $contextlist->add_user_context($userid);
         }
 
@@ -104,16 +105,12 @@ class provider implements
         global $DB;
 
         $userid = $contextlist->get_user()->id;
+        $context = \context_user::instance($userid);
+
         $records = $DB->get_records('local_smartsearch_index', [
             'recordtype' => 'user',
             'recordid' => $userid,
         ]);
-
-        if (empty($records)) {
-            return;
-        }
-
-        $context = \context_user::instance($userid);
         foreach ($records as $record) {
             $data = (object) [
                 'title' => $record->title,
@@ -127,6 +124,41 @@ class provider implements
                 $data
             );
         }
+
+        self::export_search_logs($userid, $context);
+    }
+
+    /**
+     * Export the search queries stored for one user.
+     *
+     * @param int $userid User id.
+     * @param \context $context User context.
+     */
+    private static function export_search_logs(int $userid, \context $context): void {
+        global $DB;
+
+        $logs = $DB->get_records('local_smartsearch_log', ['userid' => $userid], 'timestamp ASC, id ASC');
+        if (!$logs) {
+            return;
+        }
+
+        $queries = [];
+        foreach ($logs as $log) {
+            $queries[] = (object) [
+                'query' => $log->query,
+                'result_count' => $log->result_count,
+                'clicked_result_id' => $log->clicked_result_id,
+                'timestamp' => transform::datetime($log->timestamp),
+            ];
+        }
+
+        writer::with_context($context)->export_data(
+            [
+                get_string('pluginname', 'local_smartsearch'),
+                get_string('privacy:searchlogs', 'local_smartsearch'),
+            ],
+            (object) ['queries' => $queries]
+        );
     }
 
     /**
@@ -166,6 +198,7 @@ class provider implements
             'recordtype' => 'user',
             'recordid' => $context->instanceid,
         ]);
+        $DB->delete_records('local_smartsearch_log', ['userid' => $context->instanceid]);
     }
 
     /**

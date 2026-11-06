@@ -131,5 +131,29 @@ function xmldb_local_smartsearch_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026082600, 'local', 'smartsearch');
     }
 
+    if ($oldversion < 2026110600) {
+        $table = new \xmldb_table('local_smartsearch_log');
+        $field = new \xmldb_field('userid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'id');
+        if ($dbman->table_exists($table) && !$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $index = new \xmldb_index('idx_userid', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+        if ($dbman->table_exists($table) && !$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // A retention of 0 used to mean "keep forever". Store a bounded value instead.
+        $retention = get_config('local_smartsearch', 'analytics_retention');
+        if ($retention !== false) {
+            $normalised = \local_smartsearch\analytics::normalise_retention($retention);
+            if ((string) $retention !== (string) $normalised) {
+                set_config('analytics_retention', $normalised, 'local_smartsearch');
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026110600, 'local', 'smartsearch');
+    }
+
     return true;
 }

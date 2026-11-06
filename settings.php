@@ -107,18 +107,10 @@ try {
 if ($form->is_cancelled()) {
     redirect(new \moodle_url('/admin/settings.php', ['section' => 'local_smartsearch']));
 } else if ($data = $form->get_data()) {
-    $rawretention = optional_param('local_smartsearch_analytics_retention', null, PARAM_INT);
-    if ($rawretention !== null) {
-        if ($rawretention === '') {
-            $data->local_smartsearch_analytics_retention = 365;
-        } else if (is_numeric($rawretention)) {
-            $rawretention = (int) $rawretention;
-            if ($rawretention < 0) {
-                $data->local_smartsearch_analytics_retention = 365;
-            }
-        } else {
-            $data->local_smartsearch_analytics_retention = 365;
-        }
+    if (isset($data->local_smartsearch_analytics_retention)) {
+        $data->local_smartsearch_analytics_retention = \local_smartsearch\analytics::normalise_retention(
+            $data->local_smartsearch_analytics_retention
+        );
     }
     // Check if Smart Search is being enabled (before saving config).
     // Check if Smart Search was previously disabled (to detect enabling).
