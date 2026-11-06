@@ -168,10 +168,6 @@ define(['core/templates', 'core/ajax', 'core/str'], function(Templates, Ajax, St
         setView('form');
         if (form) {
             form.reset();
-            var tech = document.getElementById('smartsearch-feedback-tech');
-            if (tech) {
-                tech.checked = true;
-            }
         }
         if (error) {
             error.hidden = true;
