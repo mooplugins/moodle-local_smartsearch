@@ -70,6 +70,18 @@ class provider implements
             'privacy:metadata:local_smartsearch_index'
         );
 
+        $collection->add_external_location_link(
+            'feedback_recipient',
+            [
+                'name' => 'privacy:metadata:feedback:name',
+                'email' => 'privacy:metadata:feedback:email',
+                'message' => 'privacy:metadata:feedback:message',
+                'sitedetails' => 'privacy:metadata:feedback:sitedetails',
+                'techdetails' => 'privacy:metadata:feedback:techdetails',
+            ],
+            'privacy:metadata:feedback'
+        );
+
         return $collection;
     }
 

@@ -64,7 +64,7 @@ class feedback_external extends \external_api {
         return new \external_function_parameters([
             'feedbacktype' => new \external_value(PARAM_ALPHANUMEXT, 'Feedback type key'),
             'message' => new \external_value(PARAM_TEXT, 'Feedback message'),
-            'includetech' => new \external_value(PARAM_BOOL, 'Include technical details', VALUE_DEFAULT, true),
+            'includetech' => new \external_value(PARAM_BOOL, 'Include technical details', VALUE_DEFAULT, false),
             'browser' => new \external_value(PARAM_TEXT, 'Browser user agent', VALUE_DEFAULT, ''),
         ]);
     }
@@ -90,8 +90,8 @@ class feedback_external extends \external_api {
      * @param string $browser Browser user agent
      * @return array
      */
-    public static function submit_feedback(string $feedbacktype, string $message, bool $includetech = true, string $browser = '') {
-        global $CFG, $USER, $SITE;
+    public static function submit_feedback(string $feedbacktype, string $message, bool $includetech = false, string $browser = '') {
+        global $USER;
 
         $params = self::validate_parameters(self::submit_feedback_parameters(), [
             'feedbacktype' => $feedbacktype,
@@ -109,6 +109,49 @@ class feedback_external extends \external_api {
             throw new \invalid_parameter_exception(get_string('feedback_message_required', 'local_smartsearch'));
         }
 
+        $content = self::build_feedback_message(
+            $params['feedbacktype'],
+            $message,
+            !empty($params['includetech']),
+            (string) $params['browser']
+        );
+
+        $recipient = \core_user::get_noreply_user();
+        $recipient->id = -1999;
+        $recipient->email = $content->recipient;
+        $recipient->firstname = 'MooPlugins';
+        $recipient->lastname = 'Support';
+        $recipient->maildisplay = true;
+        $recipient->mailformat = 1;
+
+        $sent = email_to_user($recipient, $USER, $content->subject, $content->body, $content->bodyhtml);
+        if (!$sent) {
+            throw new \moodle_exception('feedback_send_failed', 'local_smartsearch');
+        }
+
+        return [
+            'success' => true,
+            'message' => get_string('feedback_success_title', 'local_smartsearch'),
+        ];
+    }
+
+    /**
+     * Build the feedback email without sending it.
+     *
+     * @param string $feedbacktype Feedback type key
+     * @param string $message Feedback body
+     * @param bool $includetech Include technical details
+     * @param string $browser Browser user agent
+     * @return \stdClass recipient, subject, body, bodyhtml
+     */
+    public static function build_feedback_message(
+        string $feedbacktype,
+        string $message,
+        bool $includetech = false,
+        string $browser = ''
+    ): \stdClass {
+        global $CFG, $USER, $SITE;
+
         $typelabels = [
             'improvement' => get_string('feedback_type_improvement', 'local_smartsearch'),
             'notworking' => get_string('feedback_type_notworking', 'local_smartsearch'),
@@ -116,7 +159,7 @@ class feedback_external extends \external_api {
             'irrelevant' => get_string('feedback_type_irrelevant', 'local_smartsearch'),
             'other' => get_string('feedback_type_other', 'local_smartsearch'),
         ];
-        $typelabel = $typelabels[$params['feedbacktype']] ?? $typelabels['other'];
+        $typelabel = $typelabels[$feedbacktype] ?? $typelabels['other'];
 
         $rolelabel = is_siteadmin($USER)
             ? get_string('administrator')
@@ -128,9 +171,8 @@ class feedback_external extends \external_api {
 
         $fullname = fullname($USER);
         $sitename = format_string($SITE->fullname);
-        $browser = '';
-        if (!empty($params['includetech'])) {
-            $browser = trim($params['browser']);
+        if ($includetech) {
+            $browser = trim($browser);
             if ($browser === '' && !empty($_SERVER['HTTP_USER_AGENT'])) {
                 $browser = clean_param($_SERVER['HTTP_USER_AGENT'], PARAM_TEXT);
             }
@@ -172,7 +214,7 @@ class feedback_external extends \external_api {
             'Site URL: ' . s($CFG->wwwroot) . '</p>',
         ];
 
-        if (!empty($params['includetech'])) {
+        if ($includetech) {
             $textlines = array_merge($textlines, [
                 '',
                 'Technical details',
@@ -189,26 +231,11 @@ class feedback_external extends \external_api {
             ]);
         }
 
-        $body = implode("\n", $textlines);
-        $bodyhtml = implode("\n", $htmlparts);
-        $subject = get_string('feedback_email_subject', 'local_smartsearch', $typelabel);
-
-        $recipient = \core_user::get_noreply_user();
-        $recipient->id = -1999;
-        $recipient->email = self::get_feedback_email();
-        $recipient->firstname = 'MooPlugins';
-        $recipient->lastname = 'Support';
-        $recipient->maildisplay = true;
-        $recipient->mailformat = 1;
-
-        $sent = email_to_user($recipient, $USER, $subject, $body, $bodyhtml);
-        if (!$sent) {
-            throw new \moodle_exception('feedback_send_failed', 'local_smartsearch');
-        }
-
-        return [
-            'success' => true,
-            'message' => get_string('feedback_success_title', 'local_smartsearch'),
+        return (object) [
+            'recipient' => self::get_feedback_email(),
+            'subject' => get_string('feedback_email_subject', 'local_smartsearch', $typelabel),
+            'body' => implode("\n", $textlines),
+            'bodyhtml' => implode("\n", $htmlparts),
         ];
     }
 }
