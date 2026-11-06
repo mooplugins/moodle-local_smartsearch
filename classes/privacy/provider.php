@@ -119,6 +119,7 @@ class provider implements
                 'title' => $record->title,
                 'subtitle' => $record->subtitle,
                 'keywords' => $record->keywords,
+                'metadata' => self::decode_stored_metadata($record->metadata ?? ''),
                 'updatedat' => transform::datetime($record->updatedat),
             ];
             writer::with_context($context)->export_data(
@@ -126,6 +127,27 @@ class provider implements
                 $data
             );
         }
+    }
+
+    /**
+     * Decode the JSON stored in the index metadata column for a privacy export.
+     *
+     * @param string $metadata Raw metadata column value.
+     * @return \stdClass|array
+     */
+    private static function decode_stored_metadata(string $metadata): \stdClass|array {
+        $metadata = trim($metadata);
+        if ($metadata === '') {
+            return new \stdClass();
+        }
+
+        $decoded = json_decode($metadata);
+        if (json_last_error() === JSON_ERROR_NONE && (is_object($decoded) || is_array($decoded))) {
+            return $decoded;
+        }
+
+        // Keep unparseable values so the export does not drop stored data.
+        return (object) ['raw' => $metadata];
     }
 
     /**
