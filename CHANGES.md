@@ -2,6 +2,14 @@
 
 All notable changes to the Smart Search plugin are documented here.
 
+## 1.0.17 - 2026-11-06
+
+### Fixed
+
+- Privacy export includes structured user index metadata (firstname, lastname, email, username, and suspended).
+- Search queries are stored with the user so they can be exported and deleted. A retention value below 1 is saved as 365 days (maximum 3650); 0 no longer means keep forever. The analytics report still does not show who searched.
+- Feedback sent off-site is declared in the Privacy API. Technical details are included only when the user ticks that box.
+
 ## 1.0.16 - 2026-10-01
 
 ### Improved
